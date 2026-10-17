@@ -9,7 +9,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 
 @Composable
-fun PresentacionScreen(
+fun ProductosScreen(
     modifier: Modifier = Modifier
 ) {
 
@@ -20,11 +20,11 @@ fun PresentacionScreen(
     ) {
 
         Text(
-            text = "Presentacion"
+            text = "Productos"
         )
 
         Text(
-            text = "Pantalla de Presentacion"
+            text = "Productos....."
         )
     }
 }

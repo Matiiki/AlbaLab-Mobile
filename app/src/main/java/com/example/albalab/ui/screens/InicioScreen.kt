@@ -3,8 +3,8 @@ package com.example.albalab.ui.theme.screens
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
@@ -97,19 +97,19 @@ fun InicioScreen(
 
                     Icon(
                         imageVector = Icons.Default.Favorite,
-                        contentDescription = "Colaborar",
+                        contentDescription = "Colaboradores",
                         modifier = Modifier.size(32.dp),
                         tint = MaterialTheme.colorScheme.primary
                     )
 
                     Text(
-                        text = "Colaborar",
+                        text = "Colaboradores",
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
 
                     Text(
-                        text = "Conoce cómo puedes participar.",
+                        text = "Conoce a nuestros colaboradores.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
@@ -118,7 +118,7 @@ fun InicioScreen(
 
             Card(
                 onClick = {
-                    onNavigate("Presentacion")
+                    onNavigate("Nosotros")
                 },
                 modifier = Modifier.weight(1f),
                 colors = CardDefaults.cardColors(
@@ -132,13 +132,13 @@ fun InicioScreen(
 
                     Icon(
                         imageVector = Icons.Default.Person,
-                        contentDescription = "Conócenos",
+                        contentDescription = "Nosotros",
                         modifier = Modifier.size(32.dp),
                         tint = MaterialTheme.colorScheme.onSecondaryContainer
                     )
 
                     Text(
-                        text = "Conócenos",
+                        text = "¿Quienes Somos?",
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSecondaryContainer
                     )
@@ -158,7 +158,7 @@ fun InicioScreen(
 
             Card(
                 onClick = {
-                    onNavigate("Galeria")
+                    onNavigate("Productos")
                 },
                 modifier = Modifier.weight(1f),
                 colors = CardDefaults.cardColors(
@@ -171,20 +171,20 @@ fun InicioScreen(
                 ) {
 
                     Icon(
-                        imageVector = Icons.Default.Image,
-                        contentDescription = "Galería",
+                        imageVector = Icons.Default.ShoppingCart,
+                        contentDescription = "Productos",
                         modifier = Modifier.size(32.dp),
                         tint = MaterialTheme.colorScheme.primary
                     )
 
                     Text(
-                        text = "Galería",
+                        text = "Productos",
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
 
                     Text(
-                        text = "Conoce nuestras actividades.",
+                        text = "Conoce nuestros productos.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
@@ -241,7 +241,7 @@ fun InicioScreen(
 
         Button(
             onClick = {
-                onNavigate("Colaboradores")
+                onNavigate("Donaciones")
             },
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(

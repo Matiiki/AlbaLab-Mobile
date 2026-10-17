@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
-import com.example.albalab.ui.theme.AlbalabTheme
+import com.example.albalab.ui.theme.AlbaLabTheme
 import androidx.fragment.app.FragmentActivity // Agrega esto arriba
 
 class MainActivity : FragmentActivity() { // Cambia ComponentActivity por esto
