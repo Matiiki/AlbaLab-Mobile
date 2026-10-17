@@ -9,8 +9,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import com.example.albalab.ui.theme.AlbalabTheme
+import androidx.fragment.app.FragmentActivity // Agrega esto arriba
 
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity() { // Cambia ComponentActivity por esto
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
