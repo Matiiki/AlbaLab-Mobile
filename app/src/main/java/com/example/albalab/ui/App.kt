@@ -15,9 +15,9 @@ import com.example.albalab.components.AppTopBar
 import com.example.albalab.ui.screens.ColaboradoresScreen
 import com.example.albalab.ui.screens.ContactoScreen
 import com.example.albalab.ui.screens.DonacionesScreen
-import com.example.albalab.ui.theme.screens.GaleriaScreen
+import com.example.albalab.ui.theme.screens.ProductosScreen
 import com.example.albalab.ui.theme.screens.InicioScreen
-import com.example.albalab.ui.theme.screens.PresentacionScreen
+import com.example.albalab.ui.theme.screens.NosotrosScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,13 +50,13 @@ fun App() {
                         }
                     )
                 }
-                "Galeria" -> {
-                    GaleriaScreen(
+                "Productos" -> {
+                    ProductosScreen(
                         modifier = Modifier.padding(innerPadding)
                     )
                 }
-                "Presentacion" -> {
-                    PresentacionScreen(
+                "Nosotros" -> {
+                    NosotrosScreen(
                         modifier = Modifier.padding(innerPadding)
                     )
                 }

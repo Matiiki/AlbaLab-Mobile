@@ -54,26 +54,17 @@ fun AppDrawer(
                 )
 
                 NavigationDrawerItem(
-                    label = { Text("Galeria") },
-                    selected = pantallaActual == "Galeria",
+                    label = { Text("Productos") },
+                    selected = pantallaActual == "Productos",
                     onClick = {
-                        onPantallaSeleccionada("Galeria")
+                        onPantallaSeleccionada("Productos")
                         scope.launch {
                             drawerState.close()
                         }
                     }
                 )
 
-                NavigationDrawerItem(
-                    label = { Text("Presentacion") },
-                    selected = pantallaActual == "Presentacion",
-                    onClick = {
-                        onPantallaSeleccionada("Presentacion")
-                        scope.launch {
-                            drawerState.close()
-                        }
-                    }
-                )
+
 
                 NavigationDrawerItem(
                     label = { Text("Donaciones") },
@@ -91,6 +82,16 @@ fun AppDrawer(
                     selected = pantallaActual == "Colaboradores",
                     onClick = {
                         onPantallaSeleccionada("Colaboradores")
+                        scope.launch {
+                            drawerState.close()
+                        }
+                    }
+                )
+                NavigationDrawerItem(
+                    label = { Text("Nosotros") },
+                    selected = pantallaActual == "Nosotros",
+                    onClick = {
+                        onPantallaSeleccionada("Nosotros")
                         scope.launch {
                             drawerState.close()
                         }
