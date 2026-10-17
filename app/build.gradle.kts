@@ -37,6 +37,8 @@ android {
 
 dependencies {
     implementation("androidx.compose.material:material-icons-extended")
+    implementation("androidx.biometric:biometric:1.2.0-alpha05")
+    implementation("io.coil-kt:coil-compose:2.6.0")
     implementation(platform(libs.androidx.compose.bom))
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.0")
     implementation(libs.androidx.activity.compose)

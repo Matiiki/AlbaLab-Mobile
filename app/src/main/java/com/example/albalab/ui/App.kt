@@ -62,7 +62,10 @@ fun App() {
                 }
                 "Donaciones" -> {
                     DonacionesScreen(
-                        modifier = Modifier.padding(innerPadding)
+                        modifier = Modifier.padding(innerPadding),
+                        onGuardarExitoso = {
+                            pantallaActual = "Colaboradores" // Cambia "Inicio" por el nombre de la pantalla a la que quieras ir
+                        }
                     )
                 }
                 "Colaboradores" -> {
