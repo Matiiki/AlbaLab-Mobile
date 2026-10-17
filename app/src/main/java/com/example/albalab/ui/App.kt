@@ -23,7 +23,7 @@ import com.example.albalab.ui.theme.screens.PresentacionScreen
 @Composable
 fun App() {
     var pantallaActual by remember {
-        mutableStateOf("Home")
+        mutableStateOf("Inicio")
     }
     AppDrawer(
         pantallaActual = pantallaActual,
@@ -44,7 +44,10 @@ fun App() {
             when (pantallaActual) {
                 "Inicio" -> {
                     InicioScreen(
-                        modifier = Modifier.padding(innerPadding)
+                        modifier = Modifier.padding(innerPadding),
+                        onNavigate = { destino ->
+                            pantallaActual = destino
+                        }
                     )
                 }
                 "Galeria" -> {

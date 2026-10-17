@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
-import com.example.albalab.ui.theme.AlbalabTheme
+import com.example.albalab.ui.theme.AlbaLabTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -18,7 +18,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-            AlbalabTheme {
+            AlbaLabTheme {
                 // Surface actúa como el fondo base de la app, aplicando los colores de tu tema
                 Surface(
                     modifier = Modifier.fillMaxSize(),

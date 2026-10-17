@@ -37,13 +37,7 @@ fun AppDrawer(
                     modifier = Modifier.size(120.dp)
                 ) {
                     Image(
-                        painter = painterResource(R.drawable.ic_launcher_background),
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize()
-                    )
-
-                    Image(
-                        painter = painterResource(R.drawable.ic_launcher_foreground),
+                        painter = painterResource(R.drawable.logo_albalab),
                         contentDescription = "Logo",
                         modifier = Modifier.fillMaxSize()
                     )

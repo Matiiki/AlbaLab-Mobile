@@ -1,49 +1,37 @@
 package com.example.albalab.ui.theme
 
-import android.app.Activity
-import android.os.Build
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
 
+private val AlbaColorScheme = lightColorScheme(
+    primary = AlbaBlue,
+    onPrimary = AlbaWhite,
 
-private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+    primaryContainer = AlbaLightBlue,
+    onPrimaryContainer = AlbaBlueDark,
+
+    secondary = AlbaYellow,
+    onSecondary = AlbaText,
+
+    secondaryContainer = AlbaYellowLight,
+    onSecondaryContainer = AlbaText,
+
+    background = AlbaBackground,
+    onBackground = AlbaText,
+
+    surface = AlbaWhite,
+    onSurface = AlbaText,
+
+    error = AlbaError
 )
-
-private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-)
-
 
 @Composable
-fun AlbalabTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+fun AlbaLabTheme(
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-
-        darkTheme -> com.example.albalab.ui.theme.DarkColorScheme
-        else -> LightColorScheme
-    }
-
     MaterialTheme(
-        colorScheme = colorScheme,
+        colorScheme = AlbaColorScheme,
         typography = Typography,
         content = content
     )
