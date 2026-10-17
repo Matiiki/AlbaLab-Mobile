@@ -20,7 +20,7 @@ class MainActivity : FragmentActivity() { // Cambia ComponentActivity por esto
         enableEdgeToEdge()
 
         setContent {
-            AlbalabTheme {
+            AlbaLabTheme {
                 // Surface actúa como el fondo base de la app, aplicando los colores de tu tema
                 Surface(
                     modifier = Modifier.fillMaxSize(),
