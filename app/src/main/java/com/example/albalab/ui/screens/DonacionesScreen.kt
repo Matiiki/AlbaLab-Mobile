@@ -5,6 +5,8 @@ import android.content.pm.PackageManager
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.biometric.BiometricManager
+import androidx.biometric.BiometricPrompt
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,6 +14,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -33,18 +36,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.albalab.viewmodel.FormularioViewModel2
-import androidx.compose.foundation.layout.size
-import androidx.biometric.BiometricPrompt
 import androidx.fragment.app.FragmentActivity
-import java.text.SimpleDateFormat
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.example.albalab.data.CamaraUriFactory
+import com.example.albalab.viewmodel.FormularioViewModel2
+import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-
-// IMPORTANTE: Asegúrate de que esta ruta coincida con tu proyecto real
-import com.example.albalab.data.CamaraUriFactory
+import androidx.compose.material3.RadioButton
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,83 +53,128 @@ fun DonacionesScreen(
     viewModel: FormularioViewModel2 = viewModel(),
     onGuardarExitoso: () -> Unit
 ) {
+
     val formulario by viewModel.formulario2.collectAsState()
     val errores by viewModel.errores2.collectAsState()
 
     val context = LocalContext.current
 
-    // Ahora guardamos una Uri en lugar de un Bitmap
-    var fotoUri by remember { mutableStateOf<android.net.Uri?>(null) }
-    var uriTemporal by remember { mutableStateOf<android.net.Uri?>(null) }
+    var fotoUri by remember {
+        mutableStateOf<android.net.Uri?>(null)
+    }
+    var donacionAnonima by remember {
+        mutableStateOf<Boolean?>(null)
+    }
 
-    // 1. El lanzador que abre la cámara usando la URI
+    var uriTemporal by remember {
+        mutableStateOf<android.net.Uri?>(null)
+    }
+
+    fun guardarDonacion() {
+
+        val seGuardo = viewModel.guardar()
+
+        if (seGuardo) {
+
+            viewModel.guardarColaboradorLocal(
+                nombre = formulario.nombre,
+                fotoUri = fotoUri
+            )
+
+            onGuardarExitoso()
+        }
+    }
+
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture(),
         onResult = { exito ->
+
             if (exito) {
-                // Si toma la foto, guardamos la URI final
+
                 fotoUri = uriTemporal
+
             } else {
-                // Si cancela, desmarcamos el checkbox
+
                 viewModel.actualizarAceptaCamara(false)
             }
         }
     )
 
-    // 2. El lanzador que pide el permiso
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
         onResult = { isGranted ->
+
             if (isGranted) {
-                // Si acepta el permiso, generamos la URI con el código de tu profe y abrimos la cámara
+
                 val nuevaUri = CamaraUriFactory.crearUri(context)
+
                 uriTemporal = nuevaUri
+
                 cameraLauncher.launch(nuevaUri)
+
             } else {
+
                 viewModel.actualizarAceptaCamara(false)
-                Toast.makeText(context, "Se requiere permiso para usar la cámara", Toast.LENGTH_SHORT).show()
+
+                Toast.makeText(
+                    context,
+                    "Se requiere permiso para usar la cámara",
+                    Toast.LENGTH_SHORT
+                ).show()
             }
         }
     )
 
-    // Aseguramos que el contexto sea el FragmentActivity que configuraste
     val fragmentActivity = context as FragmentActivity
+
     val executor = ContextCompat.getMainExecutor(fragmentActivity)
 
-    // Configuramos qué pasa cuando el escáner lee la huella
+    val biometricManager = BiometricManager.from(context)
+
     val biometricPrompt = remember {
+
         BiometricPrompt(
             fragmentActivity,
             executor,
+
             object : BiometricPrompt.AuthenticationCallback() {
-                override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
-                    Toast.makeText(context, "Error: $errString", Toast.LENGTH_SHORT).show()
+
+                override fun onAuthenticationError(
+                    errorCode: Int,
+                    errString: CharSequence
+                ) {
+
+                    Toast.makeText(
+                        context,
+                        "Error: $errString",
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
 
-                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                    val seGuardo = viewModel.guardar()
-                    if (seGuardo) {
-                        // ¡NUEVO! Guardamos el colaborador en la lista local
-                        viewModel.guardarColaboradorLocal(
-                            nombre = formulario.nombre,
-                            fotoUri = fotoUri
-                        )
-                        onGuardarExitoso()
-                    }
+                override fun onAuthenticationSucceeded(
+                    result: BiometricPrompt.AuthenticationResult
+                ) {
+
+                    guardarDonacion()
                 }
 
                 override fun onAuthenticationFailed() {
-                    Toast.makeText(context, "Huella no reconocida", Toast.LENGTH_SHORT).show()
+
+                    Toast.makeText(
+                        context,
+                        "Biometría no reconocida",
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
             }
         )
     }
 
-    // Diseñamos los textos de la ventanita que saldrá
     val promptInfo = remember {
+
         BiometricPrompt.PromptInfo.Builder()
             .setTitle("Confirmar pago")
-            .setSubtitle("Usa tu huella para aprobar la donación")
+            .setSubtitle("Usa tu biometría para aprobar la donación")
             .setNegativeButtonText("Cancelar")
             .build()
     }
@@ -141,24 +186,38 @@ fun DonacionesScreen(
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
+
         Text(
             text = "Donaciones",
             style = MaterialTheme.typography.headlineMedium
         )
-        Spacer(modifier = Modifier.height(10.dp))
+
+        Spacer(
+            modifier = Modifier.height(10.dp)
+        )
 
         OutlinedTextField(
             value = formulario.monto,
-            onValueChange = { viewModel.actualizarMonto(it) },
-            label = { Text("Monto") },
+            onValueChange = {
+                viewModel.actualizarMonto(it)
+            },
+            label = {
+                Text("Monto")
+            },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
-            keyboardOptions = KeyboardOptions( keyboardType = KeyboardType.Number ),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Number
+            ),
             isError = errores.monto != null,
             supportingText = {
+
                 if (errores.monto != null) {
+
                     Text(errores.monto!!)
+
                 } else {
+
                     Text("Ingrese un valor superior a 1000")
                 }
             }
@@ -166,77 +225,155 @@ fun DonacionesScreen(
 
         OutlinedTextField(
             value = formulario.nombre,
-            onValueChange = { viewModel.actualizarNombre(it) },
-            label = { Text("Nombre") },
+            onValueChange = {
+                viewModel.actualizarNombre(it)
+            },
+            label = {
+                Text("Nombre")
+            },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             isError = errores.nombre != null,
-            supportingText = { errores.nombre?.let { Text(it) } }
+            supportingText = {
+
+                errores.nombre?.let {
+                    Text(it)
+                }
+            }
         )
 
-        val fechaAUsar = formulario.fecha ?: System.currentTimeMillis()
-        val fechaTexto = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).apply {
-            timeZone = java.util.TimeZone.getTimeZone("UTC")
-        }.format(Date(fechaAUsar))
+        val fechaAUsar =
+            formulario.fecha ?: System.currentTimeMillis()
+
+        val fechaTexto =
+            SimpleDateFormat(
+                "dd/MM/yyyy",
+                Locale.getDefault()
+            ).apply {
+
+                timeZone =
+                    java.util.TimeZone.getTimeZone("UTC")
+
+            }.format(
+                Date(fechaAUsar)
+            )
 
         OutlinedTextField(
             value = fechaTexto,
             onValueChange = {},
             readOnly = true,
             enabled = false,
-            label = { Text("Fecha") },
+            label = {
+                Text("Fecha")
+            },
             modifier = Modifier.fillMaxWidth()
+        )
+
+        Text(
+            text = "¿Deseas realizar una donación anónima?",
+            style = MaterialTheme.typography.titleMedium
         )
 
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth()
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Checkbox(
-                checked = formulario.aceptaCamara,
-                onCheckedChange = { activado ->
-                    viewModel.actualizarAceptaCamara(activado)
 
-                    if (activado) {
-                        val permisoConcedido = ContextCompat.checkSelfPermission(
+            RadioButton(
+                selected = donacionAnonima == true,
+                onClick = {
+
+                    donacionAnonima = true
+
+                    // Si la donación es anónima, no necesitamos foto
+                    fotoUri = null
+
+                    viewModel.actualizarAceptaCamara(false)
+                }
+            )
+
+            Text("Sí")
+
+            RadioButton(
+                selected = donacionAnonima == false,
+                onClick = {
+
+                    donacionAnonima = false
+
+                    viewModel.actualizarAceptaCamara(true)
+
+                    val permisoConcedido =
+                        ContextCompat.checkSelfPermission(
                             context,
                             Manifest.permission.CAMERA
                         ) == PackageManager.PERMISSION_GRANTED
 
-                        if (permisoConcedido) {
-                            // Generamos la URI con el código de tu profe
-                            val nuevaUri = CamaraUriFactory.crearUri(context)
-                            uriTemporal = nuevaUri
-                            // Lanzamos la cámara enviándole la ruta donde debe guardar la foto
-                            cameraLauncher.launch(nuevaUri)
-                        } else {
-                            permissionLauncher.launch(Manifest.permission.CAMERA)
-                        }
+                    if (permisoConcedido) {
+
+                        val nuevaUri =
+                            CamaraUriFactory.crearUri(context)
+
+                        uriTemporal = nuevaUri
+
+                        cameraLauncher.launch(nuevaUri)
+
                     } else {
-                        // Si desmarca, borramos la ruta
-                        fotoUri = null
+
+                        permissionLauncher.launch(
+                            Manifest.permission.CAMERA
+                        )
                     }
                 }
             )
-            Text(text = "Quiero que me vean")
+
+            Text("No")
         }
 
-        fotoUri?.let { uri ->
-            AsyncImage(
-                model = uri,
-                contentDescription = "Foto guardada",
-                modifier = Modifier
-                    .size(100.dp)
-                    .align(Alignment.CenterHorizontally)
-            )
+        if (donacionAnonima == false) {
+
+            fotoUri?.let { uri ->
+
+                AsyncImage(
+                    model = uri,
+                    contentDescription = "Foto del donante",
+                    modifier = Modifier
+                        .size(100.dp)
+                        .align(Alignment.CenterHorizontally)
+                )
+            }
         }
+
         Button(
             onClick = {
-                // Al presionar pagar, lanzamos el escáner de huellas
-                biometricPrompt.authenticate(promptInfo)
+
+                val biometricStatus =
+                    biometricManager.canAuthenticate(
+                        BiometricManager.Authenticators.BIOMETRIC_WEAK
+                    )
+
+                if (
+                    biometricStatus ==
+                    BiometricManager.BIOMETRIC_SUCCESS
+                ) {
+
+                    biometricPrompt.authenticate(
+                        promptInfo
+                    )
+
+                } else {
+
+                    Toast.makeText(
+                        context,
+                        "Biometría no disponible. Continuando sin autenticación biométrica.",
+                        Toast.LENGTH_SHORT
+                    ).show()
+
+                    guardarDonacion()
+                }
             },
             modifier = Modifier.fillMaxWidth()
         ) {
+
             Text("Pagar")
         }
     }
