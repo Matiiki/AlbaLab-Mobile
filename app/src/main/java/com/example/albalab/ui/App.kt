@@ -18,12 +18,21 @@ import com.example.albalab.ui.screens.DonacionesScreen
 import com.example.albalab.ui.theme.screens.ProductosScreen
 import com.example.albalab.ui.theme.screens.InicioScreen
 import com.example.albalab.ui.theme.screens.NosotrosScreen
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateListOf
+import com.example.albalab.model.ProductoModel
+import com.example.albalab.ui.screens.CarritoScreen
+import com.example.albalab.ui.screens.ResumenCompraScreen
+import com.example.albalab.ui.screens.ConfirmacionCompraScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun App() {
     var pantallaActual by remember {
         mutableStateOf("Inicio")
+    }
+    val carrito = remember {
+        mutableStateListOf<ProductoModel>()
     }
     AppDrawer(
         pantallaActual = pantallaActual,
@@ -52,12 +61,46 @@ fun App() {
                 }
                 "Productos" -> {
                     ProductosScreen(
-                        modifier = Modifier.padding(innerPadding)
+                        carrito = carrito,
+                        modifier = Modifier.padding(innerPadding),
+                        onNavigate = { destino ->
+                            pantallaActual = destino
+                        }
+                    )
+                }
+                "Carrito" -> {
+                    CarritoScreen(
+                        carrito = carrito,
+                        modifier = Modifier.padding(innerPadding),
+                        onNavigate = { destino ->
+                            pantallaActual = destino
+                        }
+                    )
+                }
+                "ResumenCompra" -> {
+                    ResumenCompraScreen(
+                        carrito = carrito,
+                        modifier = Modifier.padding(innerPadding),
+                        onNavigate = { destino ->
+                            pantallaActual = destino
+                        }
+                    )
+                }
+                "ConfirmacionCompra" -> {
+                    ConfirmacionCompraScreen(
+                        carrito = carrito,
+                        modifier = Modifier.padding(innerPadding),
+                        onNavigate = { destino ->
+                            pantallaActual = destino
+                        }
                     )
                 }
                 "Nosotros" -> {
                     NosotrosScreen(
-                        modifier = Modifier.padding(innerPadding)
+                        modifier = Modifier.padding(innerPadding),
+                        onNavigate = { destino ->
+                            pantallaActual = destino
+                        }
                     )
                 }
                 "Donaciones" -> {
