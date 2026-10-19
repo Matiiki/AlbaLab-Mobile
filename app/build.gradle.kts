@@ -36,6 +36,10 @@ android {
 }
 
 dependencies {
+    // Dependencias para conectar con el backend
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    // Dependencias para conectar con el backend
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.biometric:biometric:1.2.0-alpha05")
     implementation("io.coil-kt:coil-compose:2.6.0")
