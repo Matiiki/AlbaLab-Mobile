@@ -20,12 +20,22 @@ import com.example.albalab.ui.theme.screens.InicioScreen
 import com.example.albalab.ui.theme.screens.NosotrosScreen
 import com.example.albalab.ui.screens.LoginScreen
 import com.example.albalab.ui.screens.RegistroScreen
-import com.example.albalab.ui.screens.PerfilScreen // Importación de la nueva pantalla
+import com.example.albalab.ui.screens.PerfilScreen
+import com.example.albalab.ui.screens.CarritoScreen
+import com.example.albalab.ui.screens.ResumenCompraScreen
+import com.example.albalab.ui.screens.ConfirmacionCompraScreen
+import com.example.albalab.ui.screens.WebpayScreen
+import androidx.compose.runtime.mutableStateListOf
+import com.example.albalab.model.ProductoModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun App() {
     var pantallaActual by remember { mutableStateOf("Inicio") }
+
+    val carrito = remember {
+        mutableStateListOf<ProductoModel>()
+    }
 
     // Variables para guardar los datos del usuario cuando inicie sesión
     var emailLogueado by remember { mutableStateOf("") }
@@ -67,11 +77,59 @@ fun App() {
                         }
                     )
                 }
+
+                // NUEVA RUTA DE PAGO
+                "Webpay" -> {
+                    val total = carrito.sumOf { it.precio }
+                    WebpayScreen(
+                        montoTotal = total.toDouble(),
+                        modifier = Modifier.padding(innerPadding),
+                        onPagoTerminado = {
+                            // Cuando el pago termina, vaciamos el carrito y volvemos al inicio
+                            carrito.clear()
+                            pantallaActual = "Inicio"
+                        }
+                    )
+                }
+
+                "Carrito" -> {
+                    CarritoScreen(
+                        carrito = carrito,
+                        modifier = Modifier.padding(innerPadding),
+                        onNavigate = { destino -> pantallaActual = destino }
+                    )
+                }
+                "ResumenCompra" -> {
+                    ResumenCompraScreen(
+                        carrito = carrito,
+                        modifier = Modifier.padding(innerPadding),
+                        onNavigate = { destino -> pantallaActual = destino }
+                    )
+                }
+                "ConfirmacionCompra" -> {
+                    ConfirmacionCompraScreen(
+                        carrito = carrito,
+                        modifier = Modifier.padding(innerPadding),
+                        onNavigate = { destino -> pantallaActual = destino }
+                    )
+                }
+
                 "Productos" -> {
-                    ProductosScreen(modifier = Modifier.padding(innerPadding))
+                    ProductosScreen(
+                        carrito = carrito,
+                        modifier = Modifier.padding(innerPadding),
+                        onNavigate = { destino ->
+                            pantallaActual = destino
+                        }
+                    )
                 }
                 "Nosotros" -> {
-                    NosotrosScreen(modifier = Modifier.padding(innerPadding))
+                    NosotrosScreen(
+                        modifier = Modifier.padding(innerPadding),
+                        onNavigate = { destino ->
+                            pantallaActual = destino
+                        }
+                    )
                 }
                 "Donaciones" -> {
                     DonacionesScreen(
@@ -105,7 +163,6 @@ fun App() {
                         onRegistroExitoso = { pantallaActual = "Login" }
                     )
                 }
-                // Pantalla donde se muestran los datos del usuario
                 // Pantalla donde se muestran los datos del usuario
                 "Perfil" -> {
                     PerfilScreen(
