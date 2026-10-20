@@ -1,5 +1,7 @@
 package com.example.albalab.ui.screens
 
+import android.widget.Toast
+import androidx.biometric.BiometricPrompt
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -10,25 +12,29 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import com.example.albalab.model.ProductoModel
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
+import androidx.fragment.app.FragmentActivity
+import com.example.albalab.model.ProductoModel
 
 @Composable
 fun CarritoScreen(
@@ -37,8 +43,40 @@ fun CarritoScreen(
     onNavigate: (String) -> Unit
 ) {
 
-    val totalCarrito = carrito.sumOf { it.precio }
+    val context = LocalContext.current
+    val fragmentActivity = context as FragmentActivity
+    val executor = ContextCompat.getMainExecutor(fragmentActivity)
 
+    val biometricPrompt = remember {
+        BiometricPrompt(
+            fragmentActivity,
+            executor,
+            object : BiometricPrompt.AuthenticationCallback() {
+                override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                    Toast.makeText(context, "Error: $errString", Toast.LENGTH_SHORT).show()
+                }
+
+                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                    // AQUÍ ESTÁ EL CAMBIO: Al reconocer la huella, avanzamos a Webpay
+                    onNavigate("Webpay")
+                }
+
+                override fun onAuthenticationFailed() {
+                    Toast.makeText(context, "Huella no reconocida", Toast.LENGTH_SHORT).show()
+                }
+            }
+        )
+    }
+
+    val promptInfo = remember {
+        BiometricPrompt.PromptInfo.Builder()
+            .setTitle("Confirmar Identidad")
+            .setSubtitle("Usa tu huella para proceder con la compra")
+            .setNegativeButtonText("Cancelar")
+            .build()
+    }
+
+    val totalCarrito = carrito.sumOf { it.precio }
     val productosAgrupados = carrito.groupBy { it.nombre }
 
     Column(
@@ -72,6 +110,7 @@ fun CarritoScreen(
 
             val producto = productos.first()
             val cantidad = productos.size
+            // Se corrigió el error de sintaxis agregando el multiplicador (*)
             val subtotal = producto.precio * cantidad
 
             Card(
@@ -165,21 +204,21 @@ fun CarritoScreen(
                     }
                 }
             }
-            if (carrito.isNotEmpty()) {
-                Button(
-                    onClick = {
-                        onNavigate("ResumenCompra")
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = "CONTINUAR COMPRA",
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-
         }
 
+        if (carrito.isNotEmpty()) {
+            Button(
+                onClick = {
+                    // Llamamos a la biometría en lugar de navegar directamente
+                    biometricPrompt.authenticate(promptInfo)
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "CONTINUAR COMPRA",
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
     }
 }
