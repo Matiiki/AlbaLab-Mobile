@@ -19,12 +19,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -44,7 +45,7 @@ import com.example.albalab.viewmodel.FormularioViewModel2
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import androidx.compose.material3.RadioButton
+import java.util.TimeZone
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,6 +63,7 @@ fun DonacionesScreen(
     var fotoUri by remember {
         mutableStateOf<android.net.Uri?>(null)
     }
+
     var donacionAnonima by remember {
         mutableStateOf<Boolean?>(null)
     }
@@ -70,131 +72,207 @@ fun DonacionesScreen(
         mutableStateOf<android.net.Uri?>(null)
     }
 
-    fun guardarDonacion() {
+    // Guardamos automáticamente la fecha actual
+    // si todavía no existe una fecha en el formulario.
+    LaunchedEffect(Unit) {
 
-        val seGuardo = viewModel.guardar()
-
-        if (seGuardo) {
-
-            viewModel.guardarColaboradorLocal(
-                nombre = formulario.nombre,
-                fotoUri = fotoUri
+        if (formulario.fecha == null) {
+            viewModel.actualizarFecha(
+                System.currentTimeMillis()
             )
-
-            onGuardarExitoso()
         }
     }
 
-    val cameraLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicture(),
-        onResult = { exito ->
+    // ------------------------------------------------
+    // GUARDAR DONACIÓN EN ROOM
+    // ------------------------------------------------
 
-            if (exito) {
+    fun guardarDonacion() {
 
-                fotoUri = uriTemporal
+        val esAnonima = donacionAnonima
 
-            } else {
+        if (esAnonima == null) {
 
-                viewModel.actualizarAceptaCamara(false)
-            }
+            Toast.makeText(
+                context,
+                "Debes indicar si la donación será anónima",
+                Toast.LENGTH_SHORT
+            ).show()
+
+            return
         }
-    )
 
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission(),
-        onResult = { isGranted ->
-
-            if (isGranted) {
-
-                val nuevaUri = CamaraUriFactory.crearUri(context)
-
-                uriTemporal = nuevaUri
-
-                cameraLauncher.launch(nuevaUri)
-
-            } else {
-
-                viewModel.actualizarAceptaCamara(false)
+        viewModel.guardarDonacionRoom(
+            esAnonimo = esAnonima,
+            fotoUri = fotoUri,
+            onGuardado = {
 
                 Toast.makeText(
                     context,
-                    "Se requiere permiso para usar la cámara",
+                    "Donación guardada correctamente",
                     Toast.LENGTH_SHORT
                 ).show()
+
+                onGuardarExitoso()
             }
-        }
-    )
+        )
+    }
 
-    val fragmentActivity = context as FragmentActivity
+    // ------------------------------------------------
+    // CÁMARA
+    // ------------------------------------------------
 
-    val executor = ContextCompat.getMainExecutor(fragmentActivity)
+    val cameraLauncher =
+        rememberLauncherForActivityResult(
+            contract =
+                ActivityResultContracts.TakePicture(),
+            onResult = { exito ->
 
-    val biometricManager = BiometricManager.from(context)
+                if (exito) {
 
-    val biometricPrompt = remember {
+                    fotoUri = uriTemporal
 
-        BiometricPrompt(
-            fragmentActivity,
-            executor,
+                } else {
 
-            object : BiometricPrompt.AuthenticationCallback() {
+                    viewModel.actualizarAceptaCamara(
+                        false
+                    )
+                }
+            }
+        )
 
-                override fun onAuthenticationError(
-                    errorCode: Int,
-                    errString: CharSequence
-                ) {
+    val permissionLauncher =
+        rememberLauncherForActivityResult(
+            contract =
+                ActivityResultContracts.RequestPermission(),
+            onResult = { isGranted ->
+
+                if (isGranted) {
+
+                    val nuevaUri =
+                        CamaraUriFactory.crearUri(
+                            context
+                        )
+
+                    uriTemporal = nuevaUri
+
+                    cameraLauncher.launch(
+                        nuevaUri
+                    )
+
+                } else {
+
+                    viewModel.actualizarAceptaCamara(
+                        false
+                    )
 
                     Toast.makeText(
                         context,
-                        "Error: $errString",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-
-                override fun onAuthenticationSucceeded(
-                    result: BiometricPrompt.AuthenticationResult
-                ) {
-
-                    guardarDonacion()
-                }
-
-                override fun onAuthenticationFailed() {
-
-                    Toast.makeText(
-                        context,
-                        "Biometría no reconocida",
+                        "Se requiere permiso para usar la cámara",
                         Toast.LENGTH_SHORT
                     ).show()
                 }
             }
         )
-    }
 
-    val promptInfo = remember {
+    // ------------------------------------------------
+    // BIOMETRÍA
+    // ------------------------------------------------
 
-        BiometricPrompt.PromptInfo.Builder()
-            .setTitle("Confirmar pago")
-            .setSubtitle("Usa tu biometría para aprobar la donación")
-            .setNegativeButtonText("Cancelar")
-            .build()
-    }
+    val fragmentActivity =
+        context as FragmentActivity
+
+    val executor =
+        ContextCompat.getMainExecutor(
+            fragmentActivity
+        )
+
+    val biometricManager =
+        BiometricManager.from(context)
+
+    val biometricPrompt =
+        remember {
+
+            BiometricPrompt(
+                fragmentActivity,
+                executor,
+
+                object :
+                    BiometricPrompt.AuthenticationCallback() {
+
+                    override fun onAuthenticationError(
+                        errorCode: Int,
+                        errString: CharSequence
+                    ) {
+
+                        Toast.makeText(
+                            context,
+                            "Error: $errString",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+
+                    override fun onAuthenticationSucceeded(
+                        result:
+                        BiometricPrompt.AuthenticationResult
+                    ) {
+
+                        guardarDonacion()
+                    }
+
+                    override fun onAuthenticationFailed() {
+
+                        Toast.makeText(
+                            context,
+                            "Biometría no reconocida",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+            )
+        }
+
+    val promptInfo =
+        remember {
+
+            BiometricPrompt.PromptInfo.Builder()
+                .setTitle("Confirmar pago")
+                .setSubtitle(
+                    "Usa tu biometría para aprobar la donación"
+                )
+                .setNegativeButtonText(
+                    "Cancelar"
+                )
+                .build()
+        }
+
+    // ------------------------------------------------
+    // INTERFAZ
+    // ------------------------------------------------
 
     Column(
         modifier = modifier
             .fillMaxWidth()
             .padding(20.dp)
-            .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+            .verticalScroll(
+                rememberScrollState()
+            ),
+        verticalArrangement =
+            Arrangement.spacedBy(10.dp)
     ) {
 
         Text(
             text = "Donaciones",
-            style = MaterialTheme.typography.headlineMedium
+            style =
+                MaterialTheme.typography.headlineMedium
         )
 
         Spacer(
-            modifier = Modifier.height(10.dp)
+            modifier =
+                Modifier.height(10.dp)
         )
+
+        // MONTO
 
         OutlinedTextField(
             value = formulario.monto,
@@ -204,24 +282,34 @@ fun DonacionesScreen(
             label = {
                 Text("Monto")
             },
-            modifier = Modifier.fillMaxWidth(),
+            modifier =
+                Modifier.fillMaxWidth(),
             singleLine = true,
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Number
-            ),
-            isError = errores.monto != null,
+            keyboardOptions =
+                KeyboardOptions(
+                    keyboardType =
+                        KeyboardType.Number
+                ),
+            isError =
+                errores.monto != null,
             supportingText = {
 
                 if (errores.monto != null) {
 
-                    Text(errores.monto!!)
+                    Text(
+                        errores.monto!!
+                    )
 
                 } else {
 
-                    Text("Ingrese un valor superior a 1000")
+                    Text(
+                        "Ingrese un valor superior a 1000"
+                    )
                 }
             }
         )
+
+        // NOMBRE
 
         OutlinedTextField(
             value = formulario.nombre,
@@ -231,9 +319,13 @@ fun DonacionesScreen(
             label = {
                 Text("Nombre")
             },
-            modifier = Modifier.fillMaxWidth(),
+            modifier =
+                Modifier.fillMaxWidth(),
             singleLine = true,
-            isError = errores.nombre != null,
+            enabled =
+                donacionAnonima != true,
+            isError =
+                errores.nombre != null,
             supportingText = {
 
                 errores.nombre?.let {
@@ -242,8 +334,11 @@ fun DonacionesScreen(
             }
         )
 
+        // FECHA
+
         val fechaAUsar =
-            formulario.fecha ?: System.currentTimeMillis()
+            formulario.fecha
+                ?: System.currentTimeMillis()
 
         val fechaTexto =
             SimpleDateFormat(
@@ -252,7 +347,9 @@ fun DonacionesScreen(
             ).apply {
 
                 timeZone =
-                    java.util.TimeZone.getTimeZone("UTC")
+                    TimeZone.getTimeZone(
+                        "UTC"
+                    )
 
             }.format(
                 Date(fechaAUsar)
@@ -266,56 +363,79 @@ fun DonacionesScreen(
             label = {
                 Text("Fecha")
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier =
+                Modifier.fillMaxWidth()
         )
 
+        // ANÓNIMO
+
         Text(
-            text = "¿Deseas realizar una donación anónima?",
-            style = MaterialTheme.typography.titleMedium
+            text =
+                "¿Deseas realizar una donación anónima?",
+            style =
+                MaterialTheme.typography.titleMedium
         )
 
         Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            verticalAlignment =
+                Alignment.CenterVertically,
+            horizontalArrangement =
+                Arrangement.spacedBy(8.dp)
         ) {
 
             RadioButton(
-                selected = donacionAnonima == true,
+                selected =
+                    donacionAnonima == true,
                 onClick = {
 
                     donacionAnonima = true
 
-                    // Si la donación es anónima, no necesitamos foto
                     fotoUri = null
+                    uriTemporal = null
 
-                    viewModel.actualizarAceptaCamara(false)
+                    viewModel
+                        .actualizarAceptaCamara(
+                            false
+                        )
                 }
             )
 
             Text("Sí")
 
             RadioButton(
-                selected = donacionAnonima == false,
+                selected =
+                    donacionAnonima == false,
                 onClick = {
 
                     donacionAnonima = false
 
-                    viewModel.actualizarAceptaCamara(true)
+                    viewModel
+                        .actualizarAceptaCamara(
+                            true
+                        )
 
                     val permisoConcedido =
-                        ContextCompat.checkSelfPermission(
-                            context,
-                            Manifest.permission.CAMERA
-                        ) == PackageManager.PERMISSION_GRANTED
+                        ContextCompat
+                            .checkSelfPermission(
+                                context,
+                                Manifest.permission.CAMERA
+                            ) ==
+                                PackageManager.PERMISSION_GRANTED
 
                     if (permisoConcedido) {
 
                         val nuevaUri =
-                            CamaraUriFactory.crearUri(context)
+                            CamaraUriFactory
+                                .crearUri(
+                                    context
+                                )
 
-                        uriTemporal = nuevaUri
+                        uriTemporal =
+                            nuevaUri
 
-                        cameraLauncher.launch(nuevaUri)
+                        cameraLauncher.launch(
+                            nuevaUri
+                        )
 
                     } else {
 
@@ -329,36 +449,77 @@ fun DonacionesScreen(
             Text("No")
         }
 
-        if (donacionAnonima == false) {
+        // FOTO
+
+        if (
+            donacionAnonima == false
+        ) {
 
             fotoUri?.let { uri ->
 
                 AsyncImage(
                     model = uri,
-                    contentDescription = "Foto del donante",
-                    modifier = Modifier
-                        .size(100.dp)
-                        .align(Alignment.CenterHorizontally)
+                    contentDescription =
+                        "Foto del donante",
+                    modifier =
+                        Modifier
+                            .size(100.dp)
+                            .align(
+                                Alignment.CenterHorizontally
+                            )
                 )
             }
         }
 
+        // PAGAR
+
         Button(
             onClick = {
 
-                val biometricStatus =
-                    biometricManager.canAuthenticate(
-                        BiometricManager.Authenticators.BIOMETRIC_WEAK
+                // Primero debe seleccionar
+                // si será anónima o no.
+                if (
+                    donacionAnonima == null
+                ) {
+
+                    Toast.makeText(
+                        context,
+                        "Selecciona si la donación será anónima",
+                        Toast.LENGTH_SHORT
+                    ).show()
+
+                    return@Button
+                }
+
+                // Validamos antes de pedir biometría.
+                val formularioValido =
+                    viewModel.validarFormulario(
+                        esAnonimo =
+                            donacionAnonima == true
                     )
+
+                if (!formularioValido) {
+                    return@Button
+                }
+
+                val biometricStatus =
+                    biometricManager
+                        .canAuthenticate(
+                            BiometricManager
+                                .Authenticators
+                                .BIOMETRIC_WEAK
+                        )
 
                 if (
                     biometricStatus ==
-                    BiometricManager.BIOMETRIC_SUCCESS
+                    BiometricManager
+                        .BIOMETRIC_SUCCESS
                 ) {
 
-                    biometricPrompt.authenticate(
-                        promptInfo
-                    )
+                    biometricPrompt
+                        .authenticate(
+                            promptInfo
+                        )
 
                 } else {
 
@@ -371,7 +532,8 @@ fun DonacionesScreen(
                     guardarDonacion()
                 }
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier =
+                Modifier.fillMaxWidth()
         ) {
 
             Text("Pagar")
