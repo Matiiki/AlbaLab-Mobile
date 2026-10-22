@@ -17,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 
@@ -28,10 +29,15 @@ fun ConfirmacionCompraScreen(
     // Estado para controlar cuándo iniciar la animación
     var visible by remember { mutableStateOf(false) }
 
+
+    // Pequeño retraso para que la animación
+    // se vea claramente al entrar.
+
     LaunchedEffect(Unit) {
         delay(200) // Pequeño retraso para que la animación comience al abrir la pantalla
         visible = true
     }
+
 
     Column(
         modifier = modifier.fillMaxSize().padding(16.dp),

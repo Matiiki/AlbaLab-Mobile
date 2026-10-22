@@ -3,6 +3,14 @@ package com.example.albalab.ui.screens
 import android.widget.Toast
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -45,12 +53,11 @@ fun CarritoScreen(
     onNavigate: (String) -> Unit
 ) {
 
-    val context = LocalContext.current
-    val fragmentActivity = context as FragmentActivity
-    val executor = ContextCompat.getMainExecutor(fragmentActivity)
+    val context =
+        LocalContext.current
 
-    // Verifica si el dispositivo tiene biometría disponible y configurada
-    val biometricManager = BiometricManager.from(context)
+    val fragmentActivity =
+        context as FragmentActivity
 
     val biometricPrompt = remember {
         BiometricPrompt(
@@ -165,6 +172,7 @@ fun CarritoScreen(
                         contentScale = ContentScale.Fit
                     )
 
+
                     Column(
                         modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -179,6 +187,11 @@ fun CarritoScreen(
                             text = "Precio: $${producto.precio}",
                             style = MaterialTheme.typography.bodyMedium
                         )
+
+
+                        // --------------------------------
+                        // BOTONES + CANTIDAD ANIMADA
+                        // --------------------------------
 
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
