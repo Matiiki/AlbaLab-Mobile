@@ -4,8 +4,13 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 object RetrofitClient {
-    // Reemplaza esta IP con tu Dirección IPv4 exacta
-    private const val BASE_URL = "http://192.168.1.100:9091/" // cambiarrrr
+
+    // IMPORTANTE:
+    // - Teléfono físico: reemplaza 192.168.1.100 por la IPv4 de tu PC.
+    // - Emulador Android Studio: usa http://10.0.2.2:9091/
+    const val BASE_URL = "http://192.168.1.100:9091/"
+
+    const val WEBPAY_RETURN_URL = BASE_URL + "api/webpay/retorno"
 
     val apiService: AlbalabApi by lazy {
         Retrofit.Builder()

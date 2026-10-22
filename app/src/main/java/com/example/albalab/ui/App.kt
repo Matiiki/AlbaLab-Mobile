@@ -1,6 +1,7 @@
 package com.example.albalab
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
@@ -17,7 +18,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.animation.core.tween
 import com.example.albalab.components.AppDrawer
 import com.example.albalab.components.AppTopBar
 import com.example.albalab.model.ProductoModel
@@ -47,7 +47,6 @@ fun App() {
         mutableStateListOf<ProductoModel>()
     }
 
-    // Datos del usuario logueado
     var emailLogueado by remember {
         mutableStateOf("")
     }
@@ -56,425 +55,193 @@ fun App() {
         mutableStateOf("")
     }
 
-    val isLoggedIn =
-        emailLogueado.isNotEmpty()
+    val isLoggedIn = emailLogueado.isNotEmpty()
 
     AppDrawer(
         pantallaActual = pantallaActual,
         onPantallaSeleccionada = { destino ->
-
             pantallaActual = destino
         }
     ) { abrirMenu ->
 
         Scaffold(
             modifier = Modifier.fillMaxSize(),
-
             topBar = {
-
                 AppTopBar(
                     onMenuClick = {
-
                         abrirMenu()
                     },
-
                     onLoginClick = {
-
                         pantallaActual = "Login"
                     },
-
                     onPerfilClick = {
-
                         pantallaActual = "Perfil"
                     },
-
                     isLoggedIn = isLoggedIn
                 )
             }
-
         ) { innerPadding ->
-
-            // ---------------------------------------------
-            // ANIMACIÓN ENTRE PANTALLAS
-            // ---------------------------------------------
 
             AnimatedContent(
                 targetState = pantallaActual,
-
                 transitionSpec = {
-
                     (
                             slideInHorizontally(
-                                animationSpec = tween(
-                                    durationMillis = 400
-                                ),
-                                initialOffsetX = { ancho ->
-
-                                    ancho / 3
-                                }
-                            ) +
-                                    fadeIn(
-                                        animationSpec = tween(
-                                            durationMillis = 400
-                                        )
-                                    )
+                                animationSpec = tween(durationMillis = 400),
+                                initialOffsetX = { ancho -> ancho / 3 }
+                            ) + fadeIn(
+                                animationSpec = tween(durationMillis = 400)
                             )
-                        .togetherWith(
+                            ).togetherWith(
                             slideOutHorizontally(
-                                animationSpec = tween(
-                                    durationMillis = 400
-                                ),
-                                targetOffsetX = { ancho ->
-
-                                    -ancho / 3
-                                }
-                            ) +
-                                    fadeOut(
-                                        animationSpec = tween(
-                                            durationMillis = 300
-                                        )
-                                    )
+                                animationSpec = tween(durationMillis = 400),
+                                targetOffsetX = { ancho -> -ancho / 3 }
+                            ) + fadeOut(
+                                animationSpec = tween(durationMillis = 300)
+                            )
                         )
                 },
-
                 label = "CambioPantalla"
-
             ) { pantalla ->
 
                 when (pantalla) {
 
-                    // -------------------------------------
-                    // INICIO
-                    // -------------------------------------
-
                     "Inicio" -> {
-
                         InicioScreen(
-                            modifier =
-                                Modifier.padding(
-                                    innerPadding
-                                ),
-
+                            modifier = Modifier.padding(innerPadding),
                             onNavigate = { destino ->
-
-                                pantallaActual =
-                                    destino
+                                pantallaActual = destino
                             }
                         )
                     }
-
-
-                    // -------------------------------------
-                    // PRODUCTOS
-                    // -------------------------------------
 
                     "Productos" -> {
-
                         ProductosScreen(
                             carrito = carrito,
-
-                            modifier =
-                                Modifier.padding(
-                                    innerPadding
-                                ),
-
+                            modifier = Modifier.padding(innerPadding),
                             onNavigate = { destino ->
-
-                                pantallaActual =
-                                    destino
+                                pantallaActual = destino
                             }
                         )
                     }
-
-
-                    // -------------------------------------
-                    // CARRITO
-                    // -------------------------------------
 
                     "Carrito" -> {
-
                         CarritoScreen(
                             carrito = carrito,
-
-                            modifier =
-                                Modifier.padding(
-                                    innerPadding
-                                ),
-
+                            modifier = Modifier.padding(innerPadding),
                             onNavigate = { destino ->
-
-                                pantallaActual =
-                                    destino
+                                pantallaActual = destino
                             }
                         )
                     }
-
-
-                    // -------------------------------------
-                    // RESUMEN DE COMPRA
-                    // -------------------------------------
 
                     "ResumenCompra" -> {
-
                         ResumenCompraScreen(
                             carrito = carrito,
-
-                            modifier =
-                                Modifier.padding(
-                                    innerPadding
-                                ),
-
+                            modifier = Modifier.padding(innerPadding),
                             onNavigate = { destino ->
-
-                                pantallaActual =
-                                    destino
+                                pantallaActual = destino
                             }
                         )
                     }
-
-
-                    // -------------------------------------
-                    // WEBPAY
-                    // -------------------------------------
 
                     "Webpay" -> {
-
-                        val total =
-                            carrito.sumOf {
-                                it.precio
-                            }
+                        val total = carrito.sumOf { it.precio }
 
                         WebpayScreen(
-                            montoTotal =
-                                total.toDouble(),
-
-                            modifier =
-                                Modifier.padding(
-                                    innerPadding
-                                ),
-
+                            montoTotal = total.toDouble(),
+                            modifier = Modifier.padding(innerPadding),
                             onPagoTerminado = {
-
-                                // No borramos todavía el carrito,
-                                // porque ConfirmacionCompra
-                                // necesita mostrar el total.
-
-                                pantallaActual =
-                                    "ConfirmacionCompra"
+                                // El carrito se conserva hasta mostrar la confirmación.
+                                pantallaActual = "ConfirmacionCompra"
                             }
                         )
                     }
-
-
-                    // -------------------------------------
-                    // CONFIRMACIÓN DE COMPRA
-                    // -------------------------------------
 
                     "ConfirmacionCompra" -> {
-
                         ConfirmacionCompraScreen(
                             carrito = carrito,
-
-                            modifier =
-                                Modifier.padding(
-                                    innerPadding
-                                ),
-
+                            modifier = Modifier.padding(innerPadding),
                             onNavigate = { destino ->
-
-                                // Cuando termine la confirmación
-                                // y vuelva al Inicio,
-                                // recién vaciamos el carrito.
-
-                                if (
-                                    destino == "Inicio"
-                                ) {
-
+                                if (destino == "Inicio") {
                                     carrito.clear()
                                 }
-
-                                pantallaActual =
-                                    destino
+                                pantallaActual = destino
                             }
                         )
                     }
-
-
-                    // -------------------------------------
-                    // NOSOTROS
-                    // -------------------------------------
 
                     "Nosotros" -> {
-
                         NosotrosScreen(
-                            modifier =
-                                Modifier.padding(
-                                    innerPadding
-                                ),
-
+                            modifier = Modifier.padding(innerPadding),
                             onNavigate = { destino ->
-
-                                pantallaActual =
-                                    destino
+                                pantallaActual = destino
                             }
                         )
                     }
-
-
-                    // -------------------------------------
-                    // DONACIONES
-                    // -------------------------------------
 
                     "Donaciones" -> {
-
                         DonacionesScreen(
-                            modifier =
-                                Modifier.padding(
-                                    innerPadding
-                                ),
-
+                            modifier = Modifier.padding(innerPadding),
                             onGuardarExitoso = {
-
-                                pantallaActual =
-                                    "Colaboradores"
+                                pantallaActual = "Colaboradores"
                             }
                         )
                     }
-
-
-                    // -------------------------------------
-                    // COLABORADORES
-                    // -------------------------------------
 
                     "Colaboradores" -> {
-
                         ColaboradoresScreen(
-                            modifier =
-                                Modifier.padding(
-                                    innerPadding
-                                )
+                            modifier = Modifier.padding(innerPadding)
                         )
                     }
-
-
-                    // -------------------------------------
-                    // CONTACTO
-                    // -------------------------------------
 
                     "Contacto" -> {
-
                         ContactoScreen(
-                            modifier =
-                                Modifier.padding(
-                                    innerPadding
-                                )
+                            modifier = Modifier.padding(innerPadding)
                         )
                     }
-
-
-                    // -------------------------------------
-                    // LOGIN
-                    // -------------------------------------
 
                     "Login" -> {
-
                         LoginScreen(
-                            modifier =
-                                Modifier.padding(
-                                    innerPadding
-                                ),
-
+                            modifier = Modifier.padding(innerPadding),
                             onIrARegistro = {
-
-                                pantallaActual =
-                                    "Registro"
+                                pantallaActual = "Registro"
                             },
-
-                            onLoginExitoso = {
-                                    email,
-                                    password ->
-
-                                emailLogueado =
-                                    email
-
-                                passwordLogueada =
-                                    password
-
-                                pantallaActual =
-                                    "Inicio"
+                            onLoginExitoso = { email, password ->
+                                emailLogueado = email
+                                passwordLogueada = password
+                                pantallaActual = "Inicio"
                             }
                         )
                     }
-
-
-                    // -------------------------------------
-                    // REGISTRO
-                    // -------------------------------------
 
                     "Registro" -> {
-
                         RegistroScreen(
-                            modifier =
-                                Modifier.padding(
-                                    innerPadding
-                                ),
-
+                            modifier = Modifier.padding(innerPadding),
                             onRegistroExitoso = {
-
-                                pantallaActual =
-                                    "Login"
+                                pantallaActual = "Login"
                             }
                         )
                     }
-
-
-                    // -------------------------------------
-                    // PERFIL
-                    // -------------------------------------
 
                     "Perfil" -> {
-
                         PerfilScreen(
-                            modifier =
-                                Modifier.padding(
-                                    innerPadding
-                                ),
-
-                            email =
-                                emailLogueado,
-
-                            passwordRaw =
-                                passwordLogueada,
-
+                            modifier = Modifier.padding(innerPadding),
+                            email = emailLogueado,
+                            passwordRaw = passwordLogueada,
                             onCerrarSesion = {
-
                                 emailLogueado = ""
-
                                 passwordLogueada = ""
-
-                                pantallaActual =
-                                    "Inicio"
+                                pantallaActual = "Inicio"
                             }
                         )
                     }
 
-
-                    // -------------------------------------
-                    // SEGURIDAD POR SI HAY RUTA INVÁLIDA
-                    // -------------------------------------
-
                     else -> {
-
                         InicioScreen(
-                            modifier =
-                                Modifier.padding(
-                                    innerPadding
-                                ),
-
+                            modifier = Modifier.padding(innerPadding),
                             onNavigate = { destino ->
-
-                                pantallaActual =
-                                    destino
+                                pantallaActual = destino
                             }
                         )
                     }
