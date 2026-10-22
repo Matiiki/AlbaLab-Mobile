@@ -14,15 +14,20 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -40,6 +45,20 @@ fun ColaboradoresScreen(
 
     val colaboradores by viewModel.listaColaboradores.collectAsState()
 
+    // 1. Estado para guardar el texto del buscador
+    var searchText by remember { mutableStateOf("") }
+
+    // 2. Filtramos la lista en tiempo real basada en la búsqueda
+    val colaboradoresFiltrados = colaboradores.filter { colaborador ->
+        val nombre = if (colaborador.fotoUri == null || colaborador.nombre.isBlank()) {
+            "Anónimo"
+        } else {
+            colaborador.nombre
+        }
+        // Ignora mayúsculas/minúsculas al buscar
+        nombre.contains(searchText, ignoreCase = true)
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -52,29 +71,44 @@ fun ColaboradoresScreen(
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
-        if (colaboradores.isEmpty()) {
+        // 3. El componente del buscador
+        OutlinedTextField(
+            value = searchText,
+            onValueChange = { searchText = it },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp),
+            placeholder = { Text("Buscar colaborador...") },
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = "Icono de búsqueda"
+                )
+            },
+            singleLine = true
+        )
 
+        // 4. Manejo de estados (vacío, sin resultados y lista con datos)
+        if (colaboradores.isEmpty()) {
             Text(
                 text = "Aún no hay colaboradores. ¡Sé el primero!"
             )
-
+        } else if (colaboradoresFiltrados.isEmpty()) {
+            Text(
+                text = "No se encontraron resultados para '$searchText'"
+            )
         } else {
-
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
+                // Iteramos sobre la lista filtrada, no sobre la original
+                items(colaboradoresFiltrados) { colaborador ->
 
-                items(colaboradores) { colaborador ->
-
-                    // Si no existe foto, la donación se muestra como anónima
                     val esAnonimo = colaborador.fotoUri == null
-
                     val nombreMostrar = if (esAnonimo) {
                         "Anónimo"
                     } else {
-                        colaborador.nombre.ifBlank {
-                            "Anónimo"
-                        }
+                        colaborador.nombre.ifBlank { "Anónimo" }
                     }
 
                     Card(
@@ -83,25 +117,20 @@ fun ColaboradoresScreen(
                             defaultElevation = 2.dp
                         )
                     ) {
-
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-
                             if (!esAnonimo) {
-
                                 AsyncImage(
                                     model = Uri.parse(colaborador.fotoUri),
                                     contentDescription = "Foto de $nombreMostrar",
                                     modifier = Modifier.size(60.dp),
                                     contentScale = ContentScale.Crop
                                 )
-
                             } else {
-
                                 Icon(
                                     imageVector = Icons.Default.Person,
                                     contentDescription = "Donación anónima",
@@ -114,7 +143,6 @@ fun ColaboradoresScreen(
                             )
 
                             Column {
-
                                 Text(
                                     text = nombreMostrar,
                                     style = MaterialTheme.typography.titleMedium
