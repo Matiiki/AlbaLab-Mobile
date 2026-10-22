@@ -141,20 +141,20 @@ fun CarritoScreen(
             targetState = carrito.size,
             transitionSpec = {
                 (
-                        slideInVertically(
-                            animationSpec = tween(durationMillis = 250),
-                            initialOffsetY = { it }
-                        ) + fadeIn(
-                            animationSpec = tween(durationMillis = 250)
-                        )
-                        ).togetherWith(
-                        slideOutVertically(
-                            animationSpec = tween(durationMillis = 250),
-                            targetOffsetY = { -it }
-                        ) + fadeOut(
-                            animationSpec = tween(durationMillis = 200)
-                        )
+                    slideInVertically(
+                        animationSpec = tween(durationMillis = 250),
+                        initialOffsetY = { it }
+                    ) + fadeIn(
+                        animationSpec = tween(durationMillis = 250)
                     )
+                ).togetherWith(
+                    slideOutVertically(
+                        animationSpec = tween(durationMillis = 250),
+                        targetOffsetY = { -it }
+                    ) + fadeOut(
+                        animationSpec = tween(durationMillis = 200)
+                    )
+                )
             },
             label = "CantidadTotalCarrito"
         ) { cantidadTotal ->
@@ -249,20 +249,20 @@ fun CarritoScreen(
                                 targetState = cantidad,
                                 transitionSpec = {
                                     (
-                                            slideInVertically(
-                                                animationSpec = tween(durationMillis = 220),
-                                                initialOffsetY = { it }
-                                            ) + fadeIn(
-                                                animationSpec = tween(durationMillis = 220)
-                                            )
-                                            ).togetherWith(
-                                            slideOutVertically(
-                                                animationSpec = tween(durationMillis = 220),
-                                                targetOffsetY = { -it }
-                                            ) + fadeOut(
-                                                animationSpec = tween(durationMillis = 180)
-                                            )
+                                        slideInVertically(
+                                            animationSpec = tween(durationMillis = 220),
+                                            initialOffsetY = { it }
+                                        ) + fadeIn(
+                                            animationSpec = tween(durationMillis = 220)
                                         )
+                                    ).togetherWith(
+                                        slideOutVertically(
+                                            animationSpec = tween(durationMillis = 220),
+                                            targetOffsetY = { -it }
+                                        ) + fadeOut(
+                                            animationSpec = tween(durationMillis = 180)
+                                        )
+                                    )
                                 },
                                 label = "CantidadProducto"
                             ) { cantidadAnimada ->
