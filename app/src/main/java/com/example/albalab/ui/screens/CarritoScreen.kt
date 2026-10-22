@@ -53,17 +53,17 @@ fun CarritoScreen(
     onNavigate: (String) -> Unit
 ) {
 
-    val context =
-        LocalContext.current
-
-    val fragmentActivity =
-        context as FragmentActivity
+    val context = LocalContext.current
+    val fragmentActivity = context as FragmentActivity
+    val executor = ContextCompat.getMainExecutor(fragmentActivity)
+    val biometricManager = BiometricManager.from(context)
 
     val biometricPrompt = remember {
         BiometricPrompt(
             fragmentActivity,
             executor,
             object : BiometricPrompt.AuthenticationCallback() {
+
                 override fun onAuthenticationError(
                     errorCode: Int,
                     errString: CharSequence
@@ -83,6 +83,7 @@ fun CarritoScreen(
                         "Identidad confirmada",
                         Toast.LENGTH_SHORT
                     ).show()
+
                     onNavigate("Webpay")
                 }
 
@@ -116,9 +117,10 @@ fun CarritoScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
 
-        // NUEVO: Botón para volver a productos
         IconButton(
-            onClick = { onNavigate("Productos") },
+            onClick = {
+                onNavigate("Productos")
+            },
             modifier = Modifier.align(Alignment.Start)
         ) {
             Icon(
@@ -135,25 +137,66 @@ fun CarritoScreen(
             color = MaterialTheme.colorScheme.primary
         )
 
-        Text(
-            text = "Productos agregados: ${carrito.size}",
-            style = MaterialTheme.typography.titleMedium
-        )
+        AnimatedContent(
+            targetState = carrito.size,
+            transitionSpec = {
+                (
+                        slideInVertically(
+                            animationSpec = tween(durationMillis = 250),
+                            initialOffsetY = { it }
+                        ) + fadeIn(
+                            animationSpec = tween(durationMillis = 250)
+                        )
+                        ).togetherWith(
+                        slideOutVertically(
+                            animationSpec = tween(durationMillis = 250),
+                            targetOffsetY = { -it }
+                        ) + fadeOut(
+                            animationSpec = tween(durationMillis = 200)
+                        )
+                    )
+            },
+            label = "CantidadTotalCarrito"
+        ) { cantidadTotal ->
+            Text(
+                text = "Productos agregados: $cantidadTotal",
+                style = MaterialTheme.typography.titleMedium
+            )
+        }
 
-        Text(
-            text = "Total: $$totalCarrito",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
-        )
+        AnimatedContent(
+            targetState = totalCarrito,
+            transitionSpec = {
+                fadeIn(
+                    animationSpec = tween(durationMillis = 250)
+                ).togetherWith(
+                    fadeOut(
+                        animationSpec = tween(durationMillis = 200)
+                    )
+                )
+            },
+            label = "TotalCarrito"
+        ) { totalAnimado ->
+            Text(
+                text = "Total: $$totalAnimado",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
 
         productosAgrupados.forEach { (_, productos) ->
+
             val producto = productos.first()
             val cantidad = productos.size
             val subtotal = producto.precio * cantidad
 
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .animateContentSize(
+                        animationSpec = tween(durationMillis = 300)
+                    ),
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surface
                 )
@@ -172,7 +215,6 @@ fun CarritoScreen(
                         contentScale = ContentScale.Fit
                     )
 
-
                     Column(
                         modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -188,29 +230,54 @@ fun CarritoScreen(
                             style = MaterialTheme.typography.bodyMedium
                         )
 
-
-                        // --------------------------------
-                        // BOTONES + CANTIDAD ANIMADA
-                        // --------------------------------
-
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            IconButton(onClick = { carrito.remove(producto) }) {
+                            IconButton(
+                                onClick = {
+                                    carrito.remove(producto)
+                                }
+                            ) {
                                 Icon(
                                     imageVector = Icons.Default.Remove,
                                     contentDescription = "Disminuir cantidad"
                                 )
                             }
 
-                            Text(
-                                text = cantidad.toString(),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
+                            AnimatedContent(
+                                targetState = cantidad,
+                                transitionSpec = {
+                                    (
+                                            slideInVertically(
+                                                animationSpec = tween(durationMillis = 220),
+                                                initialOffsetY = { it }
+                                            ) + fadeIn(
+                                                animationSpec = tween(durationMillis = 220)
+                                            )
+                                            ).togetherWith(
+                                            slideOutVertically(
+                                                animationSpec = tween(durationMillis = 220),
+                                                targetOffsetY = { -it }
+                                            ) + fadeOut(
+                                                animationSpec = tween(durationMillis = 180)
+                                            )
+                                        )
+                                },
+                                label = "CantidadProducto"
+                            ) { cantidadAnimada ->
+                                Text(
+                                    text = cantidadAnimada.toString(),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
 
-                            IconButton(onClick = { carrito.add(producto) }) {
+                            IconButton(
+                                onClick = {
+                                    carrito.add(producto)
+                                }
+                            ) {
                                 Icon(
                                     imageVector = Icons.Default.Add,
                                     contentDescription = "Aumentar cantidad"
@@ -218,16 +285,32 @@ fun CarritoScreen(
                             }
                         }
 
-                        Text(
-                            text = "Subtotal: $$subtotal",
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
+                        AnimatedContent(
+                            targetState = subtotal,
+                            transitionSpec = {
+                                fadeIn(
+                                    animationSpec = tween(durationMillis = 220)
+                                ).togetherWith(
+                                    fadeOut(
+                                        animationSpec = tween(durationMillis = 180)
+                                    )
+                                )
+                            },
+                            label = "SubtotalProducto"
+                        ) { subtotalAnimado ->
+                            Text(
+                                text = "Subtotal: $$subtotalAnimado",
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
 
                         TextButton(
                             onClick = {
-                                carrito.removeAll { it.nombre == producto.nombre }
+                                carrito.removeAll {
+                                    it.nombre == producto.nombre
+                                }
                             }
                         ) {
                             Text("Eliminar")
@@ -243,6 +326,7 @@ fun CarritoScreen(
                     val biometricStatus = biometricManager.canAuthenticate(
                         BiometricManager.Authenticators.BIOMETRIC_WEAK
                     )
+
                     if (biometricStatus == BiometricManager.BIOMETRIC_SUCCESS) {
                         biometricPrompt.authenticate(promptInfo)
                     } else {
@@ -251,6 +335,7 @@ fun CarritoScreen(
                             "Biometría no disponible. Continuando con la compra.",
                             Toast.LENGTH_SHORT
                         ).show()
+
                         onNavigate("Webpay")
                     }
                 },

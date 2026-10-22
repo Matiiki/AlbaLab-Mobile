@@ -5,7 +5,14 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.slideInVertically
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.Button
@@ -23,67 +30,103 @@ import kotlinx.coroutines.delay
 
 @Composable
 fun ConfirmacionCompraScreen(
+    carrito: List<ProductoModel>,
     modifier: Modifier = Modifier,
-    onVolverInicio: () -> Unit // Navegación para salir de esta pantalla
+    onNavigate: (String) -> Unit
 ) {
-    // Estado para controlar cuándo iniciar la animación
-    var visible by remember { mutableStateOf(false) }
 
+    val totalCarrito = carrito.sumOf { it.precio }
 
-    // Pequeño retraso para que la animación
-    // se vea claramente al entrar.
+    var visible by remember {
+        mutableStateOf(false)
+    }
 
     LaunchedEffect(Unit) {
-        delay(200) // Pequeño retraso para que la animación comience al abrir la pantalla
+        delay(200)
         visible = true
     }
 
-
     Column(
-        modifier = modifier.fillMaxSize().padding(16.dp),
+        modifier = modifier
+            .fillMaxSize()
+            .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         // Animación 1: Icono verde de éxito apareciendo con zoom
         AnimatedVisibility(
             visible = visible,
-            enter = scaleIn(animationSpec = tween(700)) + fadeIn(animationSpec = tween(700))
+            enter = scaleIn(
+                animationSpec = tween(durationMillis = 700)
+            ) + fadeIn(
+                animationSpec = tween(durationMillis = 700)
+            )
         ) {
             Icon(
                 imageVector = Icons.Default.CheckCircle,
-                contentDescription = "Éxito",
-                tint = Color(0xFF4CAF50), // Verde vibrante
+                contentDescription = "Compra exitosa",
+                tint = Color(0xFF4CAF50),
                 modifier = Modifier.size(140.dp)
             )
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Animación 2: Texto deslizando desde abajo
         AnimatedVisibility(
             visible = visible,
             enter = slideInVertically(
                 initialOffsetY = { 50 },
-                animationSpec = tween(700, delayMillis = 300)
-            ) + fadeIn(animationSpec = tween(700, delayMillis = 300))
-        ) {
-            Text(
-                text = "Compra exitosa",
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
+                animationSpec = tween(
+                    durationMillis = 700,
+                    delayMillis = 300
+                )
+            ) + fadeIn(
+                animationSpec = tween(
+                    durationMillis = 700,
+                    delayMillis = 300
+                )
             )
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = "Compra exitosa",
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+
+                Text(
+                    text = "Tu compra fue procesada correctamente.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    textAlign = TextAlign.Center
+                )
+
+                Text(
+                    text = "Total: $$totalCarrito",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(48.dp))
 
-        // Animación 3: Botón apareciendo suavemente al final
         AnimatedVisibility(
             visible = visible,
-            enter = fadeIn(animationSpec = tween(700, delayMillis = 600))
+            enter = fadeIn(
+                animationSpec = tween(
+                    durationMillis = 700,
+                    delayMillis = 600
+                )
+            )
         ) {
             Button(
-                onClick = onVolverInicio,
+                onClick = {
+                    onNavigate("Inicio")
+                },
                 modifier = Modifier.fillMaxWidth(0.7f)
             ) {
                 Text(
