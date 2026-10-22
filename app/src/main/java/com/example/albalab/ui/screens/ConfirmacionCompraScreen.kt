@@ -1,5 +1,5 @@
 package com.example.albalab.ui.screens
-
+import com.example.albalab.model.ProductoModel
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
