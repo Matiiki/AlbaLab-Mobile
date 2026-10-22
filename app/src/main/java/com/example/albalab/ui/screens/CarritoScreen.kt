@@ -15,6 +15,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -52,18 +53,14 @@ fun CarritoScreen(
     val biometricManager = BiometricManager.from(context)
 
     val biometricPrompt = remember {
-
         BiometricPrompt(
             fragmentActivity,
             executor,
-
             object : BiometricPrompt.AuthenticationCallback() {
-
                 override fun onAuthenticationError(
                     errorCode: Int,
                     errString: CharSequence
                 ) {
-
                     Toast.makeText(
                         context,
                         "Autenticación cancelada: $errString",
@@ -74,18 +71,15 @@ fun CarritoScreen(
                 override fun onAuthenticationSucceeded(
                     result: BiometricPrompt.AuthenticationResult
                 ) {
-
                     Toast.makeText(
                         context,
                         "Identidad confirmada",
                         Toast.LENGTH_SHORT
                     ).show()
-
                     onNavigate("Webpay")
                 }
 
                 override fun onAuthenticationFailed() {
-
                     Toast.makeText(
                         context,
                         "Huella no reconocida",
@@ -97,220 +91,132 @@ fun CarritoScreen(
     }
 
     val promptInfo = remember {
-
         BiometricPrompt.PromptInfo.Builder()
             .setTitle("Confirmar identidad")
-            .setSubtitle(
-                "Usa tu huella para proceder con la compra"
-            )
+            .setSubtitle("Usa tu huella para proceder con la compra")
             .setNegativeButtonText("Cancelar")
             .build()
     }
 
-    val totalCarrito = carrito.sumOf {
-        it.precio
-    }
-
-    val productosAgrupados = carrito.groupBy {
-        it.nombre
-    }
+    val totalCarrito = carrito.sumOf { it.precio }
+    val productosAgrupados = carrito.groupBy { it.nombre }
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .verticalScroll(
-                rememberScrollState()
-            )
+            .verticalScroll(rememberScrollState())
             .padding(20.dp),
-
-        verticalArrangement =
-            Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+
+        // NUEVO: Botón para volver a productos
+        IconButton(
+            onClick = { onNavigate("Productos") },
+            modifier = Modifier.align(Alignment.Start)
+        ) {
+            Icon(
+                imageVector = Icons.Default.ArrowBack,
+                contentDescription = "Volver a productos",
+                tint = MaterialTheme.colorScheme.primary
+            )
+        }
 
         Text(
             text = "Carrito",
-            style =
-                MaterialTheme.typography.headlineMedium,
+            style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
-            color =
-                MaterialTheme.colorScheme.primary
+            color = MaterialTheme.colorScheme.primary
         )
 
         Text(
-            text =
-                "Productos agregados: ${carrito.size}",
-            style =
-                MaterialTheme.typography.titleMedium
+            text = "Productos agregados: ${carrito.size}",
+            style = MaterialTheme.typography.titleMedium
         )
 
         Text(
             text = "Total: $$totalCarrito",
-            style =
-                MaterialTheme.typography.titleLarge,
+            style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
-            color =
-                MaterialTheme.colorScheme.primary
+            color = MaterialTheme.colorScheme.primary
         )
 
-        productosAgrupados.forEach {
-                (_, productos) ->
-
-            val producto =
-                productos.first()
-
-            val cantidad =
-                productos.size
-
-            val subtotal =
-                producto.precio * cantidad
+        productosAgrupados.forEach { (_, productos) ->
+            val producto = productos.first()
+            val cantidad = productos.size
+            val subtotal = producto.precio * cantidad
 
             Card(
-                modifier =
-                    Modifier.fillMaxWidth(),
-
-                colors =
-                    CardDefaults.cardColors(
-                        containerColor =
-                            MaterialTheme
-                                .colorScheme
-                                .surface
-                    )
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
             ) {
-
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),
-
-                    horizontalArrangement =
-                        Arrangement.spacedBy(16.dp),
-
-                    verticalAlignment =
-                        Alignment.CenterVertically
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-
                     Image(
-                        painter =
-                            painterResource(
-                                producto.imagen
-                            ),
-                        contentDescription =
-                            producto.nombre,
-                        modifier =
-                            Modifier.size(100.dp),
-                        contentScale =
-                            ContentScale.Fit
+                        painter = painterResource(producto.imagen),
+                        contentDescription = producto.nombre,
+                        modifier = Modifier.size(100.dp),
+                        contentScale = ContentScale.Fit
                     )
 
                     Column(
-                        modifier =
-                            Modifier.weight(1f),
-
-                        verticalArrangement =
-                            Arrangement.spacedBy(8.dp)
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-
                         Text(
-                            text =
-                                producto.nombre,
-                            style =
-                                MaterialTheme
-                                    .typography
-                                    .titleMedium,
-                            fontWeight =
-                                FontWeight.Bold
+                            text = producto.nombre,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
                         )
 
                         Text(
-                            text =
-                                "Precio: $${producto.precio}",
-                            style =
-                                MaterialTheme
-                                    .typography
-                                    .bodyMedium
+                            text = "Precio: $${producto.precio}",
+                            style = MaterialTheme.typography.bodyMedium
                         )
 
                         Row(
-                            verticalAlignment =
-                                Alignment
-                                    .CenterVertically,
-
-                            horizontalArrangement =
-                                Arrangement
-                                    .spacedBy(8.dp)
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-
-                            IconButton(
-                                onClick = {
-
-                                    carrito.remove(
-                                        producto
-                                    )
-                                }
-                            ) {
-
+                            IconButton(onClick = { carrito.remove(producto) }) {
                                 Icon(
-                                    imageVector =
-                                        Icons.Default.Remove,
-                                    contentDescription =
-                                        "Disminuir cantidad"
+                                    imageVector = Icons.Default.Remove,
+                                    contentDescription = "Disminuir cantidad"
                                 )
                             }
 
                             Text(
-                                text =
-                                    cantidad.toString(),
-                                style =
-                                    MaterialTheme
-                                        .typography
-                                        .titleMedium,
-                                fontWeight =
-                                    FontWeight.Bold
+                                text = cantidad.toString(),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
                             )
 
-                            IconButton(
-                                onClick = {
-
-                                    carrito.add(
-                                        producto
-                                    )
-                                }
-                            ) {
-
+                            IconButton(onClick = { carrito.add(producto) }) {
                                 Icon(
-                                    imageVector =
-                                        Icons.Default.Add,
-                                    contentDescription =
-                                        "Aumentar cantidad"
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = "Aumentar cantidad"
                                 )
                             }
                         }
 
                         Text(
-                            text =
-                                "Subtotal: $$subtotal",
-                            style =
-                                MaterialTheme
-                                    .typography
-                                    .bodyLarge,
-                            fontWeight =
-                                FontWeight.Bold,
-                            color =
-                                MaterialTheme
-                                    .colorScheme
-                                    .primary
+                            text = "Subtotal: $$subtotal",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
                         )
 
                         TextButton(
                             onClick = {
-
-                                carrito.removeAll {
-                                    it.nombre ==
-                                            producto.nombre
-                                }
+                                carrito.removeAll { it.nombre == producto.nombre }
                             }
                         ) {
-
                             Text("Eliminar")
                         }
                     }
@@ -319,52 +225,27 @@ fun CarritoScreen(
         }
 
         if (carrito.isNotEmpty()) {
-
             Button(
                 onClick = {
-
-                    val biometricStatus =
-                        biometricManager
-                            .canAuthenticate(
-                                BiometricManager
-                                    .Authenticators
-                                    .BIOMETRIC_WEAK
-                            )
-
-                    if (
-                        biometricStatus ==
-                        BiometricManager
-                            .BIOMETRIC_SUCCESS
-                    ) {
-
-                        // Existe biometría configurada
-                        biometricPrompt.authenticate(
-                            promptInfo
-                        )
-
+                    val biometricStatus = biometricManager.canAuthenticate(
+                        BiometricManager.Authenticators.BIOMETRIC_WEAK
+                    )
+                    if (biometricStatus == BiometricManager.BIOMETRIC_SUCCESS) {
+                        biometricPrompt.authenticate(promptInfo)
                     } else {
-
-                        // No tiene huella configurada,
-                        // por lo tanto no bloqueamos la compra
                         Toast.makeText(
                             context,
                             "Biometría no disponible. Continuando con la compra.",
                             Toast.LENGTH_SHORT
                         ).show()
-
                         onNavigate("Webpay")
                     }
                 },
-
-                modifier =
-                    Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth()
             ) {
-
                 Text(
-                    text =
-                        "CONTINUAR COMPRA",
-                    fontWeight =
-                        FontWeight.Bold
+                    text = "CONTINUAR COMPRA",
+                    fontWeight = FontWeight.Bold
                 )
             }
         }

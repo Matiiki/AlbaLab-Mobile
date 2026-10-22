@@ -78,16 +78,17 @@ fun App() {
                     )
                 }
 
-                // NUEVA RUTA DE PAGO
+// NUEVA RUTA DE PAGO
                 "Webpay" -> {
                     val total = carrito.sumOf { it.precio }
                     WebpayScreen(
                         montoTotal = total.toDouble(),
                         modifier = Modifier.padding(innerPadding),
                         onPagoTerminado = {
-                            // Cuando el pago termina, vaciamos el carrito y volvemos al inicio
+                            // 1. Vaciamos el carrito
                             carrito.clear()
-                            pantallaActual = "Inicio"
+                            // 2. Navegamos a la pantalla de animación en lugar de "Inicio"
+                            pantallaActual = "ConfirmacionCompra"
                         }
                     )
                 }
@@ -99,6 +100,7 @@ fun App() {
                         onNavigate = { destino -> pantallaActual = destino }
                     )
                 }
+
                 "ResumenCompra" -> {
                     ResumenCompraScreen(
                         carrito = carrito,
@@ -106,11 +108,14 @@ fun App() {
                         onNavigate = { destino -> pantallaActual = destino }
                     )
                 }
+
+                // NUEVA RUTA DE CONFIRMACIÓN ANIMADA
                 "ConfirmacionCompra" -> {
                     ConfirmacionCompraScreen(
-                        carrito = carrito,
                         modifier = Modifier.padding(innerPadding),
-                        onNavigate = { destino -> pantallaActual = destino }
+                        onVolverInicio = {
+                            pantallaActual = "Inicio"
+                        }
                     )
                 }
 
