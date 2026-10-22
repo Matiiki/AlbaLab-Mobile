@@ -86,20 +86,20 @@ fun App() {
                 targetState = pantallaActual,
                 transitionSpec = {
                     (
-                            slideInHorizontally(
-                                animationSpec = tween(durationMillis = 400),
-                                initialOffsetX = { ancho -> ancho / 3 }
-                            ) + fadeIn(
-                                animationSpec = tween(durationMillis = 400)
-                            )
-                            ).togetherWith(
-                            slideOutHorizontally(
-                                animationSpec = tween(durationMillis = 400),
-                                targetOffsetX = { ancho -> -ancho / 3 }
-                            ) + fadeOut(
-                                animationSpec = tween(durationMillis = 300)
-                            )
+                        slideInHorizontally(
+                            animationSpec = tween(durationMillis = 400),
+                            initialOffsetX = { ancho -> ancho / 3 }
+                        ) + fadeIn(
+                            animationSpec = tween(durationMillis = 400)
                         )
+                    ).togetherWith(
+                        slideOutHorizontally(
+                            animationSpec = tween(durationMillis = 400),
+                            targetOffsetX = { ancho -> -ancho / 3 }
+                        ) + fadeOut(
+                            animationSpec = tween(durationMillis = 300)
+                        )
+                    )
                 },
                 label = "CambioPantalla"
             ) { pantalla ->
