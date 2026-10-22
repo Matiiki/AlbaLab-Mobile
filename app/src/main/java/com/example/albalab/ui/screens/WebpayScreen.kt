@@ -25,10 +25,19 @@ fun WebpayScreen(
     var webpayToken by remember { mutableStateOf<String?>(null) }
     var cargando by remember { mutableStateOf(true) }
 
-    // 1. Llamar al backend para crear la transacción apenas se abre esta pantalla
+// 1. Llamar al backend para crear la transacción apenas se abre esta pantalla
     LaunchedEffect(Unit) {
         try {
-            val request = WebpayRequest(monto = montoTotal)
+            // Generamos una orden y sesión únicas usando el tiempo actual
+            val tiempoActual = System.currentTimeMillis().toString()
+
+            val request = WebpayRequest(
+                ordenCompra = "ORDEN-$tiempoActual",
+                idSesion = "SESION-$tiempoActual",
+                monto = montoTotal,
+                urlRetorno = "http://192.168.1.100:9091/api/webpay/retorno" // URL de prueba
+            )
+
             // Llama a tu servidor Spring Boot
             val response = RetrofitClient.apiService.crearTransaccionWebpay(request)
             webpayUrl = response.url

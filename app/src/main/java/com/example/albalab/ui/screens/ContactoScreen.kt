@@ -1,27 +1,45 @@
 package com.example.albalab.ui.screens
 
-import android.widget.Toast
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Message
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
@@ -33,8 +51,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.albalab.viewmodel.FormularioViewModel
@@ -48,485 +66,281 @@ fun ContactoScreen(
     modifier: Modifier = Modifier,
     viewModel: FormularioViewModel = viewModel()
 ) {
+    // Paleta de colores personalizada
+    val AzulPrimario = Color(0xFF0D47A1)
+    val AzulMedio = Color(0xFF1976D2)
+    val CelesteFondo = Color(0xFFF0F8FF)
+    val CelesteClaro = Color(0xFFE3F2FD)
+    val Blanco = Color(0xFFFFFFFF)
 
-    val formulario by
-    viewModel.formulario.collectAsState()
+    // Estados
+    val formulario by viewModel.formulario.collectAsState()
+    val errores by viewModel.errores.collectAsState()
+    var mostrarDatePicker by remember { mutableStateOf(false) }
+    var lugarExpandida by remember { mutableStateOf(false) }
 
-    val errores by
-    viewModel.errores.collectAsState()
+    val lugar = listOf(
+        "Cerrillos", "Cerro Navia", "Conchalí", "El Bosque", "Estación Central",
+        "Huechuraba", "Independencia", "La Cisterna", "La Florida", "La Granja",
+        "La Pintana", "La Reina", "Las Condes", "Lo Barnechea", "Lo Espejo",
+        "Lo Prado", "Macul", "Maipú", "Ñuñoa", "Pedro Aguirre Cerda",
+        "Peñalolén", "Providencia", "Pudahuel", "Puente Alto", "Quilicura",
+        "Quinta Normal", "Recoleta", "Renca", "San Bernardo", "San Joaquín",
+        "San Miguel", "San Ramón", "Santiago", "Vitacura"
+    )
 
-    val context =
-        LocalContext.current
-
-    var mostrarDatePicker by
-    remember {
-        mutableStateOf(false)
-    }
-
-    var lugarExpandido by
-    remember {
-        mutableStateOf(false)
-    }
-
-    val lugares =
-        listOf(
-            "Cerrillos",
-            "Cerro Navia",
-            "Conchalí",
-            "El Bosque",
-            "Estación Central",
-            "Huechuraba",
-            "Independencia",
-            "La Cisterna",
-            "La Florida",
-            "La Granja",
-            "La Pintana",
-            "La Reina",
-            "Las Condes",
-            "Lo Barnechea",
-            "Lo Espejo",
-            "Lo Prado",
-            "Macul",
-            "Maipú",
-            "Ñuñoa",
-            "Pedro Aguirre Cerda",
-            "Peñalolén",
-            "Providencia",
-            "Pudahuel",
-            "Puente Alto",
-            "Quilicura",
-            "Quinta Normal",
-            "Recoleta",
-            "Renca",
-            "San Bernardo",
-            "San Joaquín",
-            "San Miguel",
-            "San Ramón",
-            "Santiago",
-            "Vitacura"
-        )
+    // Estilo común para los campos de texto
+    val textFieldColors = OutlinedTextFieldDefaults.colors(
+        focusedBorderColor = AzulPrimario,
+        unfocusedBorderColor = AzulMedio,
+        focusedLabelColor = AzulPrimario,
+        unfocusedContainerColor = CelesteClaro.copy(alpha = 0.4f),
+        focusedContainerColor = Blanco
+    )
 
     Column(
         modifier = modifier
-            .fillMaxWidth()
-            .padding(20.dp)
-            .verticalScroll(
-                rememberScrollState()
-            ),
-        verticalArrangement =
-            Arrangement.spacedBy(10.dp)
+            .fillMaxSize()
+            .background(CelesteFondo)
+            .verticalScroll(rememberScrollState())
+            .padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
-        Text(
-            text = "Contacto Alba Lab",
-            style =
-                MaterialTheme
-                    .typography
-                    .headlineMedium
-        )
-
-        Text(
-            text =
-                "Completa los datos para solicitar información o coordinar una actividad con Alba Lab.",
-            style =
-                MaterialTheme
-                    .typography
-                    .bodyMedium
-        )
-
-        Spacer(
-            modifier =
-                Modifier.height(8.dp)
-        )
-
-        // NOMBRE
-
-        OutlinedTextField(
-            value =
-                formulario.nombre,
-            onValueChange = {
-                viewModel.actualizarNombre(it)
-            },
-            label = {
-                Text("Nombre de contacto")
-            },
-            modifier =
-                Modifier.fillMaxWidth(),
-            singleLine = true,
-            isError =
-                errores.nombre != null,
-            supportingText = {
-
-                errores.nombre?.let {
-                    Text(it)
-                }
-            }
-        )
-
-        // MOTIVO
-
-        OutlinedTextField(
-            value =
-                formulario.motivo,
-            onValueChange = {
-                viewModel.actualizarMotivo(it)
-            },
-            label = {
-                Text(
-                    "Motivo de contacto"
-                )
-            },
-            modifier =
-                Modifier.fillMaxWidth(),
-            minLines = 3,
-            isError =
-                errores.motivo != null,
-            supportingText = {
-
-                errores.motivo?.let {
-                    Text(it)
-                }
-            }
-        )
-
-        // CANTIDAD DE PARTICIPANTES - INT
-
-        OutlinedTextField(
-            value =
-                formulario
-                    .cantidadParticipantes
-                    ?.toString()
-                    ?: "",
-            onValueChange = {
-
-                viewModel
-                    .actualizarCantidadParticipantes(
-                        it
-                    )
-            },
-            label = {
-                Text(
-                    "Cantidad de participantes"
-                )
-            },
-            modifier =
-                Modifier.fillMaxWidth(),
-            singleLine = true,
-            keyboardOptions =
-                KeyboardOptions(
-                    keyboardType =
-                        KeyboardType.Number
-                ),
-            isError =
-                errores
-                    .cantidadParticipantes != null,
-            supportingText = {
-
-                if (
-                    errores
-                        .cantidadParticipantes != null
-                ) {
-
-                    Text(
-                        errores
-                            .cantidadParticipantes!!
-                    )
-
-                } else {
-
-                    Text(
-                        "Personas estimadas para la actividad o colaboración"
-                    )
-                }
-            }
-        )
-
-        // CHECKBOX
-
-        Row(
-            verticalAlignment =
-                Alignment.CenterVertically
+        // Cabecera
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-
-            Checkbox(
-                checked =
-                    formulario
-                        .aceptaTerminos,
-                onCheckedChange = {
-
-                    viewModel
-                        .actualizarAceptaTerminos(
-                            it
-                        )
-                }
+            Icon(
+                imageVector = Icons.Default.Email,
+                contentDescription = "Ícono Contacto",
+                tint = AzulMedio,
+                modifier = Modifier.size(48.dp)
             )
-
             Text(
-                "Acepto los términos y condiciones"
+                text = "Contacto AlbaLab",
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.Bold,
+                color = AzulPrimario
+            )
+            Text(
+                text = "Déjanos tu mensaje y te contactaremos",
+                style = MaterialTheme.typography.bodyMedium,
+                color = AzulMedio
             )
         }
 
-        errores.aceptaTerminos
-            ?.let {
-
-                Text(
-                    text = it,
-                    color =
-                        MaterialTheme
-                            .colorScheme
-                            .error
-                )
-            }
-
-        // SWITCH
-
-        Row(
-            modifier =
-                Modifier.fillMaxWidth(),
-            horizontalArrangement =
-                Arrangement.SpaceBetween,
-            verticalAlignment =
-                Alignment.CenterVertically
+        // Tarjeta principal del formulario
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = Blanco),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            shape = RoundedCornerShape(16.dp)
         ) {
-
             Column(
-                modifier =
-                    Modifier.weight(1f)
+                modifier = Modifier.padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-
-                Text(
-                    text =
-                        "¿Deseas que Alba Lab te contacte?"
+                // NOMBRE
+                OutlinedTextField(
+                    value = formulario.nombre,
+                    onValueChange = { viewModel.actualizarNombre(it) },
+                    label = { Text("Nombre") },
+                    leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = AzulMedio) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = textFieldColors,
+                    isError = errores.nombre != null,
+                    supportingText = { errores.nombre?.let { Text(it) } }
                 )
 
-                Text(
-                    text =
-                        "Activa esta opción para solicitar seguimiento.",
-                    style =
-                        MaterialTheme
-                            .typography
-                            .bodySmall
-                )
-            }
-
-            Switch(
-                checked =
-                    formulario
-                        .solicitaSeguimiento,
-                onCheckedChange = {
-
-                    viewModel
-                        .actualizarSolicitaSeguimiento(
-                            it
-                        )
-                }
-            )
-        }
-
-        // FECHA
-
-        val fechaTexto =
-            formulario.fecha?.let {
-
-                SimpleDateFormat(
-                    "dd/MM/yyyy",
-                    Locale.getDefault()
-                ).format(
-                    Date(it)
+                // MOTIVO
+                OutlinedTextField(
+                    value = formulario.motivo,
+                    onValueChange = { viewModel.actualizarMotivo(it) },
+                    label = { Text("Motivo del contacto") },
+                    leadingIcon = { Icon(Icons.Default.Message, contentDescription = null, tint = AzulMedio) },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 3,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = textFieldColors,
+                    isError = errores.motivo != null,
+                    supportingText = { errores.motivo?.let { Text(it) } }
                 )
 
-            } ?: "Seleccionar fecha"
-
-        OutlinedTextField(
-            value = fechaTexto,
-            onValueChange = {},
-            readOnly = true,
-            label = {
-                Text(
-                    "Fecha de actividad"
-                )
-            },
-            modifier =
-                Modifier.fillMaxWidth(),
-            isError =
-                errores.fecha != null,
-            supportingText = {
-
-                errores.fecha?.let {
-                    Text(it)
-                }
-            }
-        )
-
-        Button(
-            onClick = {
-                mostrarDatePicker = true
-            },
-            modifier =
-                Modifier.fillMaxWidth()
-        ) {
-
-            Text(
-                "Seleccionar fecha"
-            )
-        }
-
-        // LUGAR
-
-        ExposedDropdownMenuBox(
-            expanded =
-                lugarExpandido,
-            onExpandedChange = {
-
-                lugarExpandido =
-                    !lugarExpandido
-            }
-        ) {
-
-            OutlinedTextField(
-                value =
-                    formulario.lugar,
-                onValueChange = {},
-                readOnly = true,
-                label = {
-                    Text(
-                        "Comuna o lugar"
+                // TÉRMINOS Y CONDICIONES
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Checkbox(
+                        checked = formulario.aceptaTerminos,
+                        onCheckedChange = { viewModel.actualizarAceptaTerminos(it) },
+                        colors = CheckboxDefaults.colors(checkedColor = AzulPrimario)
                     )
-                },
-                trailingIcon = {
+                    Text(
+                        text = "Acepto los términos y condiciones",
+                        color = AzulPrimario,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+                if (errores.aceptaTerminos != null) {
+                    Text(
+                        text = errores.aceptaTerminos!!,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(start = 16.dp, top = 0.dp)
+                    )
+                }
 
-                    ExposedDropdownMenuDefaults
-                        .TrailingIcon(
-                            expanded =
-                                lugarExpandido
-                        )
-                },
-                modifier =
-                    Modifier
-                        .menuAnchor()
-                        .fillMaxWidth(),
-                isError =
-                    errores.lugar != null,
-                supportingText = {
+                // REGISTRO ACTIVO (Switch)
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Mantener registro activo",
+                        color = AzulPrimario,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Switch(
+                        checked = formulario.activo,
+                        onCheckedChange = { viewModel.actualizarActivo(it) },
+                        colors = SwitchDefaults.colors(checkedThumbColor = AzulPrimario, checkedTrackColor = CelesteClaro)
+                    )
+                }
 
-                    errores.lugar?.let {
-                        Text(it)
+                // FECHA (Clickable Box)
+                val fechaTexto = formulario.fecha?.let {
+                    SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date(it))
+                } ?: "Seleccionar fecha"
+
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    OutlinedTextField(
+                        value = fechaTexto,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Fecha") },
+                        leadingIcon = { Icon(Icons.Default.CalendarToday, contentDescription = null, tint = AzulMedio) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = textFieldColors,
+                        isError = errores.fecha != null
+                    )
+                    // Caja invisible sobre el TextField para capturar el clic y abrir el calendario
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .clickable { mostrarDatePicker = true }
+                    )
+                }
+                if (errores.fecha != null) {
+                    Text(
+                        text = errores.fecha!!,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(start = 16.dp)
+                    )
+                }
+
+                // LUGAR (Dropdown)
+                ExposedDropdownMenuBox(
+                    expanded = lugarExpandida,
+                    onExpandedChange = { lugarExpandida = !lugarExpandida }
+                ) {
+                    OutlinedTextField(
+                        value = formulario.lugar,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Lugar (Comuna)") },
+                        leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = null, tint = AzulMedio) },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = lugarExpandida) },
+                        modifier = Modifier.menuAnchor().fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = textFieldColors,
+                        isError = errores.lugar != null
+                    )
+
+                    ExposedDropdownMenu(
+                        expanded = lugarExpandida,
+                        onDismissRequest = { lugarExpandida = false },
+                        modifier = Modifier.background(Blanco)
+                    ) {
+                        lugar.forEach { comuna ->
+                            DropdownMenuItem(
+                                text = { Text(comuna, color = AzulPrimario) },
+                                onClick = {
+                                    viewModel.actualizarLugar(comuna)
+                                    lugarExpandida = false
+                                }
+                            )
+                        }
                     }
                 }
-            )
-
-            ExposedDropdownMenu(
-                expanded =
-                    lugarExpandido,
-                onDismissRequest = {
-
-                    lugarExpandido =
-                        false
-                }
-            ) {
-
-                lugares.forEach {
-                        lugar ->
-
-                    DropdownMenuItem(
-                        text = {
-                            Text(lugar)
-                        },
-                        onClick = {
-
-                            viewModel
-                                .actualizarLugar(
-                                    lugar
-                                )
-
-                            lugarExpandido =
-                                false
-                        }
+                if (errores.lugar != null) {
+                    Text(
+                        text = errores.lugar!!,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(start = 16.dp)
                     )
                 }
             }
         }
 
-        Spacer(
-            modifier =
-                Modifier.height(8.dp)
-        )
-
-        // GUARDAR
-
+        // BOTÓN GUARDAR
         Button(
-            onClick = {
-
-                viewModel.guardar {
-
-                    Toast.makeText(
-                        context,
-                        "Solicitud enviada correctamente",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-            },
-            modifier =
-                Modifier.fillMaxWidth()
+            onClick = { viewModel.guardar() },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = AzulPrimario,
+                contentColor = Blanco
+            ),
+            elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
         ) {
-
+            Icon(
+                imageVector = Icons.Default.Send,
+                contentDescription = null,
+                modifier = Modifier.padding(end = 8.dp).size(20.dp)
+            )
             Text(
-                "ENVIAR SOLICITUD"
+                text = "ENVIAR MENSAJE",
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleMedium
             )
         }
     }
 
-    // DATE PICKER
-
+    // DATE PICKER DIALOG
     if (mostrarDatePicker) {
-
-        val datePickerState =
-            rememberDatePickerState(
-                initialSelectedDateMillis =
-                    formulario.fecha
-            )
-
+        val datePickerState = rememberDatePickerState(initialSelectedDateMillis = formulario.fecha)
         DatePickerDialog(
-            onDismissRequest = {
-                mostrarDatePicker = false
-            },
+            onDismissRequest = { mostrarDatePicker = false },
             confirmButton = {
-
                 TextButton(
                     onClick = {
-
-                        viewModel
-                            .actualizarFecha(
-                                datePickerState
-                                    .selectedDateMillis
-                            )
-
-                        mostrarDatePicker =
-                            false
+                        viewModel.actualizarFecha(datePickerState.selectedDateMillis)
+                        mostrarDatePicker = false
                     }
                 ) {
-
-                    Text("Aceptar")
+                    Text("Aceptar", color = AzulPrimario, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
-
-                TextButton(
-                    onClick = {
-                        mostrarDatePicker =
-                            false
-                    }
-                ) {
-
-                    Text("Cancelar")
+                TextButton(onClick = { mostrarDatePicker = false }) {
+                    Text("Cancelar", color = AzulMedio)
                 }
             }
         ) {
-
-            DatePicker(
-                state =
-                    datePickerState
-            )
+            DatePicker(state = datePickerState)
         }
     }
 }

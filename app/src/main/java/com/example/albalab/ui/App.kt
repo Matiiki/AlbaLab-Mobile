@@ -94,12 +94,46 @@ fun App() {
 
         ) { innerPadding ->
 
-            // ---------------------------------------------
-            // ANIMACIÓN ENTRE PANTALLAS
-            // ---------------------------------------------
+// NUEVA RUTA DE PAGO
+                "Webpay" -> {
+                    val total = carrito.sumOf { it.precio }
+                    WebpayScreen(
+                        montoTotal = total.toDouble(),
+                        modifier = Modifier.padding(innerPadding),
+                        onPagoTerminado = {
+                            // 1. Vaciamos el carrito
+                            carrito.clear()
+                            // 2. Navegamos a la pantalla de animación en lugar de "Inicio"
+                            pantallaActual = "ConfirmacionCompra"
+                        }
+                    )
+                }
 
-            AnimatedContent(
-                targetState = pantallaActual,
+                "Carrito" -> {
+                    CarritoScreen(
+                        carrito = carrito,
+                        modifier = Modifier.padding(innerPadding),
+                        onNavigate = { destino -> pantallaActual = destino }
+                    )
+                }
+
+                "ResumenCompra" -> {
+                    ResumenCompraScreen(
+                        carrito = carrito,
+                        modifier = Modifier.padding(innerPadding),
+                        onNavigate = { destino -> pantallaActual = destino }
+                    )
+                }
+
+                // NUEVA RUTA DE CONFIRMACIÓN ANIMADA
+                "ConfirmacionCompra" -> {
+                    ConfirmacionCompraScreen(
+                        modifier = Modifier.padding(innerPadding),
+                        onVolverInicio = {
+                            pantallaActual = "Inicio"
+                        }
+                    )
+                }
 
                 transitionSpec = {
 
