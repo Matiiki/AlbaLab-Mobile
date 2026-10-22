@@ -163,7 +163,6 @@ fun ContactoScreen(
                 fontWeight = FontWeight.Bold,
                 color = azulPrimario
             )
-
             Text(
                 text = "Déjanos tu solicitud y te contactaremos",
                 style = MaterialTheme.typography.bodyMedium,
@@ -501,9 +500,7 @@ fun ContactoScreen(
         )
 
         DatePickerDialog(
-            onDismissRequest = {
-                mostrarDatePicker = false
-            },
+            onDismissRequest = { mostrarDatePicker = false },
             confirmButton = {
                 TextButton(
                     onClick = {
