@@ -6,13 +6,12 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
 
-
 @Dao
 interface AlbaLabDao {
 
-    // -------------------------
+    // ------------------------------------------------
     // COLABORADORES
-    // -------------------------
+    // ------------------------------------------------
 
     @Insert(
         onConflict = OnConflictStrategy.REPLACE
@@ -24,12 +23,13 @@ interface AlbaLabDao {
     @Query(
         "SELECT * FROM colaboradores ORDER BY id DESC"
     )
-    fun obtenerColaboradores(): Flow<List<ColaboradorEntity>>
+    fun obtenerColaboradores():
+            Flow<List<ColaboradorEntity>>
 
 
-    // -------------------------
+    // ------------------------------------------------
     // DONACIONES
-    // -------------------------
+    // ------------------------------------------------
 
     @Insert(
         onConflict = OnConflictStrategy.REPLACE
@@ -41,12 +41,51 @@ interface AlbaLabDao {
     @Query(
         "SELECT * FROM donaciones ORDER BY fecha DESC"
     )
-    fun obtenerDonaciones(): Flow<List<DonacionEntity>>
+    fun obtenerDonaciones():
+            Flow<List<DonacionEntity>>
 
 
-    // -------------------------
+    // ------------------------------------------------
+    // COLABORADORES + DONACIONES
+    // ------------------------------------------------
+
+    @Query(
+        """
+        SELECT
+            c.*,
+            d.monto AS monto,
+            d.fecha AS fecha
+        FROM colaboradores c
+        INNER JOIN donaciones d
+            ON c.id = d.colaboradorId
+        ORDER BY d.fecha DESC
+        """
+    )
+    fun obtenerColaboradoresConDonaciones():
+            Flow<List<ColaboradorConDonacion>>
+
+
+    // ------------------------------------------------
+    // CONTACTOS
+    // ------------------------------------------------
+
+    @Insert(
+        onConflict = OnConflictStrategy.REPLACE
+    )
+    suspend fun insertarContacto(
+        contacto: ContactoEntity
+    )
+
+    @Query(
+        "SELECT * FROM contactos ORDER BY id DESC"
+    )
+    fun obtenerContactos():
+            Flow<List<ContactoEntity>>
+
+
+    // ------------------------------------------------
     // BORRAR DATOS
-    // -------------------------
+    // ------------------------------------------------
 
     @Query("DELETE FROM colaboradores")
     suspend fun borrarColaboradores()
@@ -54,18 +93,6 @@ interface AlbaLabDao {
     @Query("DELETE FROM donaciones")
     suspend fun borrarDonaciones()
 
-    @Query(
-        """
-    SELECT 
-        c.*,
-        d.monto AS monto,
-        d.fecha AS fecha
-    FROM colaboradores c
-    INNER JOIN donaciones d
-        ON c.id = d.colaboradorId
-    ORDER BY d.fecha DESC
-    """
-    )
-    fun obtenerColaboradoresConDonaciones():
-            Flow<List<ColaboradorConDonacion>>
+    @Query("DELETE FROM contactos")
+    suspend fun borrarContactos()
 }
