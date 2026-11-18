@@ -28,17 +28,18 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.listSaver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.albalab.model.Contenido
 import com.example.albalab.model.ContenidoDefaults
 import com.example.albalab.viewmodel.ContenidoViewModel
 
@@ -57,12 +58,26 @@ fun AdminContenidoScreen(
     val context = LocalContext.current
     val contenidos by viewModel.contenidos.collectAsState()
 
-    var editados by remember { mutableStateOf(contenidos) }
-    var mostrarRestaurar by remember { mutableStateOf(false) }
+    var editados by rememberSaveable(
+        stateSaver = listSaver<List<Contenido>, String>(
+            save = { lista ->
+                lista.flatMap { item ->
+                    listOf(item.clave, item.titulo, item.cuerpo)
+                }
+            },
+            restore = { guardado ->
+                guardado.chunked(3).map { partes ->
+                    Contenido(
+                        clave = partes[0],
+                        titulo = partes[1],
+                        cuerpo = partes[2]
+                    )
+                }
+            }
+        )
+    ) { mutableStateOf(contenidos) }
 
-    LaunchedEffect(Unit) {
-        editados = contenidos
-    }
+    var mostrarRestaurar by rememberSaveable { mutableStateOf(false) }
 
     Column(
         modifier = modifier

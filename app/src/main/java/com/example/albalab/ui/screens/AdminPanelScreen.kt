@@ -36,7 +36,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,13 +53,24 @@ fun AdminPanelScreen(
     onEditarContenido: () -> Unit,
     onCerrarSesion: () -> Unit
 ) {
-    var emailNuevo by remember { mutableStateOf("") }
-    var passwordNuevo by remember { mutableStateOf("") }
-    var adminEditando by remember { mutableStateOf<Administrador?>(null) }
-    var adminEliminando by remember { mutableStateOf<Administrador?>(null) }
+    var emailNuevo by rememberSaveable { mutableStateOf("") }
+    var passwordNuevo by rememberSaveable { mutableStateOf("") }
+    var adminEditandoId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var adminEliminandoId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var adminsCargados by rememberSaveable { mutableStateOf(false) }
+
+    val adminEditando = adminEditandoId?.let { id ->
+        viewModel.admins.firstOrNull { it.id == id }
+    }
+    val adminEliminando = adminEliminandoId?.let { id ->
+        viewModel.admins.firstOrNull { it.id == id }
+    }
 
     LaunchedEffect(Unit) {
-        viewModel.cargarAdmins()
+        if (!adminsCargados) {
+            viewModel.cargarAdmins()
+            adminsCargados = true
+        }
     }
 
     Column(
@@ -245,8 +256,8 @@ fun AdminPanelScreen(
             ) { admin ->
                 AdminItem(
                     admin = admin,
-                    onEditar = { adminEditando = admin },
-                    onEliminar = { adminEliminando = admin }
+                    onEditar = { adminEditandoId = admin.id },
+                    onEliminar = { adminEliminandoId = admin.id }
                 )
             }
 
@@ -265,13 +276,13 @@ fun AdminPanelScreen(
     adminEditando?.let { admin ->
         EditarAdminDialog(
             admin = admin,
-            onDismiss = { adminEditando = null },
+            onDismiss = { adminEditandoId = null },
             onGuardar = { email, password ->
                 viewModel.actualizarAdmin(
                     id = admin.id,
                     email = email,
                     password = password,
-                    onSuccess = { adminEditando = null }
+                    onSuccess = { adminEditandoId = null }
                 )
             }
         )
@@ -279,7 +290,7 @@ fun AdminPanelScreen(
 
     adminEliminando?.let { admin ->
         AlertDialog(
-            onDismissRequest = { adminEliminando = null },
+            onDismissRequest = { adminEliminandoId = null },
             title = { Text("Eliminar administrador") },
             text = {
                 Text(
@@ -295,7 +306,7 @@ fun AdminPanelScreen(
                     onClick = {
                         viewModel.eliminarAdmin(
                             id = admin.id,
-                            onSuccess = { adminEliminando = null }
+                            onSuccess = { adminEliminandoId = null }
                         )
                     }
                 ) {
@@ -306,7 +317,7 @@ fun AdminPanelScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { adminEliminando = null }) {
+                TextButton(onClick = { adminEliminandoId = null }) {
                     Text("Cancelar")
                 }
             }
@@ -366,8 +377,8 @@ private fun EditarAdminDialog(
     onDismiss: () -> Unit,
     onGuardar: (String, String) -> Unit
 ) {
-    var email by remember(admin.id) { mutableStateOf(admin.email) }
-    var password by remember(admin.id) { mutableStateOf("") }
+    var email by rememberSaveable(admin.id) { mutableStateOf(admin.email) }
+    var password by rememberSaveable(admin.id) { mutableStateOf("") }
 
     AlertDialog(
         onDismissRequest = onDismiss,

@@ -51,7 +51,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -83,11 +83,11 @@ fun ContactoScreen(
     val formulario by viewModel.formulario.collectAsState()
     val errores by viewModel.errores.collectAsState()
 
-    var mostrarDatePicker by remember {
+    var mostrarDatePicker by rememberSaveable {
         mutableStateOf(false)
     }
 
-    var lugarExpandido by remember {
+    var lugarExpandido by rememberSaveable {
         mutableStateOf(false)
     }
 

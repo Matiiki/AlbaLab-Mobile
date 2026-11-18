@@ -48,6 +48,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -90,7 +91,7 @@ fun DonacionesScreen(
 
     val context = LocalContext.current
 
-    var uriTemporal by remember { mutableStateOf<Uri?>(null) }
+    var uriTemporal by rememberSaveable { mutableStateOf<String?>(null) }
 
     // Guardamos automáticamente la fecha actual
     LaunchedEffect(Unit) {
@@ -119,7 +120,7 @@ fun DonacionesScreen(
         contract = ActivityResultContracts.TakePicture(),
         onResult = { exito ->
             if (exito) {
-                viewModel.actualizarFotoUri(uriTemporal?.toString())
+                viewModel.actualizarFotoUri(uriTemporal)
             } else {
                 viewModel.actualizarAceptaCamara(false)
             }
@@ -131,7 +132,7 @@ fun DonacionesScreen(
         onResult = { isGranted ->
             if (isGranted) {
                 val nuevaUri = CamaraUriFactory.crearUri(context)
-                uriTemporal = nuevaUri
+                uriTemporal = nuevaUri.toString()
                 cameraLauncher.launch(nuevaUri)
             } else {
                 viewModel.actualizarAceptaCamara(false)
@@ -285,7 +286,7 @@ fun DonacionesScreen(
 
                                     if (permisoConcedido) {
                                         val nuevaUri = CamaraUriFactory.crearUri(context)
-                                        uriTemporal = nuevaUri
+                                        uriTemporal = nuevaUri.toString()
                                         cameraLauncher.launch(nuevaUri)
                                     } else {
                                         permissionLauncher.launch(Manifest.permission.CAMERA)

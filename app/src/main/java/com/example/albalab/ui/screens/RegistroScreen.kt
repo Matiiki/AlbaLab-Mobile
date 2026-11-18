@@ -21,7 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,24 +40,30 @@ fun RegistroScreen(
     viewModel: AuthViewModel = viewModel()
 ) {
 
-    var email by remember {
+    var email by rememberSaveable {
         mutableStateOf("")
     }
 
-    var password by remember {
+    var password by rememberSaveable {
         mutableStateOf("")
     }
 
-    var confirmarPassword by remember {
+    var confirmarPassword by rememberSaveable {
         mutableStateOf("")
     }
 
     val context =
         LocalContext.current
 
-    LaunchedEffect(Unit) {
+    var erroresLimpiados by rememberSaveable {
+        mutableStateOf(false)
+    }
 
-        viewModel.limpiarErrores()
+    LaunchedEffect(Unit) {
+        if (!erroresLimpiados) {
+            viewModel.limpiarErrores()
+            erroresLimpiados = true
+        }
     }
 
     Column(

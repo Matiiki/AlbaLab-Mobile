@@ -36,6 +36,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -75,13 +76,15 @@ fun ProductosScreen(
 
     // --- LÓGICA DE ANIMACIÓN DEL CARRITO ---
     var carritoResaltado by remember { mutableStateOf(false) }
+    var tamanoAnteriorCarrito by rememberSaveable { mutableStateOf(carrito.size) }
 
     LaunchedEffect(carrito.size) {
-        if (carrito.isNotEmpty()) {
+        if (carrito.size > tamanoAnteriorCarrito) {
             carritoResaltado = true
             delay(300)
             carritoResaltado = false
         }
+        tamanoAnteriorCarrito = carrito.size
     }
 
     val colorFondoCarrito by animateColorAsState(

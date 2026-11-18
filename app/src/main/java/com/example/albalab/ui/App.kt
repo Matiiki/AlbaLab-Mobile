@@ -14,15 +14,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.albalab.components.AppDrawer
 import com.example.albalab.components.AppTopBar
-import com.example.albalab.model.ProductoModel
 import com.example.albalab.ui.screens.AdminContenidoScreen
 import com.example.albalab.ui.screens.AdminLoginScreen
 import com.example.albalab.ui.screens.AdminPanelScreen
@@ -41,8 +36,10 @@ import com.example.albalab.ui.theme.screens.InicioScreen
 import com.example.albalab.ui.theme.screens.NosotrosScreen
 import com.example.albalab.ui.theme.screens.ProductosScreen
 import com.example.albalab.viewmodel.AdminViewModel
+import com.example.albalab.viewmodel.AppViewModel
 import com.example.albalab.viewmodel.ContenidoViewModel
 import com.example.albalab.viewmodel.FormularioViewModel2
+import com.example.albalab.viewmodel.WebpayViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,13 +48,8 @@ fun App(
     onModoOscuroChange: (Boolean) -> Unit = {}
 ) {
 
-    var pantallaActual by remember {
-        mutableStateOf("Inicio")
-    }
-
-    val carrito = remember {
-        mutableStateListOf<ProductoModel>()
-    }
+    val appViewModel: AppViewModel = viewModel()
+    val webpayViewModel: WebpayViewModel = viewModel()
 
     val adminViewModel: AdminViewModel = viewModel()
     val formularioViewModel: FormularioViewModel2 = viewModel()
@@ -66,40 +58,20 @@ fun App(
     val resumenDonaciones by
         formularioViewModel.resumenDonaciones.collectAsState()
 
-    var webpayOrigen by remember {
-        mutableStateOf("Carrito")
-    }
-
-    var montoDonacionPendiente by remember {
-        mutableStateOf(0)
-    }
-
-    var ultimaDonacionMonto by remember {
-        mutableStateOf(0)
-    }
-
-    var pantallaPostLogin by remember {
-        mutableStateOf("Inicio")
-    }
-
-    var emailLogueado by remember {
-        mutableStateOf("")
-    }
-
-    var passwordLogueada by remember {
-        mutableStateOf("")
-    }
-
-    var tokenLogueado by remember {
-        mutableStateOf("")
-    }
+    val pantallaActual = appViewModel.pantallaActual
+    val carrito = appViewModel.carrito
+    val webpayOrigen = appViewModel.webpayOrigen
+    val montoDonacionPendiente = appViewModel.montoDonacionPendiente
+    val ultimaDonacionMonto = appViewModel.ultimaDonacionMonto
+    val emailLogueado = appViewModel.emailLogueado
+    val tokenLogueado = appViewModel.tokenLogueado
 
     val isLoggedIn = emailLogueado.isNotEmpty() || adminViewModel.estaLogueado
 
     AppDrawer(
         pantallaActual = pantallaActual,
         onPantallaSeleccionada = { destino ->
-            pantallaActual = destino
+            appViewModel.pantallaActual = destino
         }
     ) { abrirMenu ->
 
@@ -111,15 +83,16 @@ fun App(
                         abrirMenu()
                     },
                     onLoginClick = {
-                        pantallaPostLogin = "Inicio"
-                        pantallaActual = "Login"
+                        appViewModel.pantallaPostLogin = "Inicio"
+                        appViewModel.pantallaActual = "Login"
                     },
                     onPerfilClick = {
-                        pantallaActual = if (emailLogueado.isNotEmpty()) {
-                            "Perfil"
-                        } else {
-                            "AdminPanel"
-                        }
+                        appViewModel.pantallaActual =
+                            if (appViewModel.emailLogueado.isNotEmpty()) {
+                                "Perfil"
+                            } else {
+                                "AdminPanel"
+                            }
                     },
                     isLoggedIn = isLoggedIn
                 )
@@ -157,7 +130,7 @@ fun App(
                             totalDonaciones = resumenDonaciones.total,
                             cantidadDonaciones = resumenDonaciones.cantidad,
                             onNavigate = { destino ->
-                                pantallaActual = destino
+                                appViewModel.pantallaActual = destino
                             }
                         )
                     }
@@ -167,7 +140,7 @@ fun App(
                             carrito = carrito,
                             modifier = Modifier.padding(innerPadding),
                             onNavigate = { destino ->
-                                pantallaActual = destino
+                                appViewModel.pantallaActual = destino
                             }
                         )
                     }
@@ -178,10 +151,10 @@ fun App(
                             modifier = Modifier.padding(innerPadding),
                             onNavigate = { destino ->
                                 if (destino == "Webpay") {
-                                    webpayOrigen = "Carrito"
-                                    montoDonacionPendiente = 0
+                                    appViewModel.navegarAWebpay("Carrito")
+                                } else {
+                                    appViewModel.pantallaActual = destino
                                 }
-                                pantallaActual = destino
                             }
                         )
                     }
@@ -191,7 +164,7 @@ fun App(
                             carrito = carrito,
                             modifier = Modifier.padding(innerPadding),
                             onNavigate = { destino ->
-                                pantallaActual = destino
+                                appViewModel.pantallaActual = destino
                             }
                         )
                     }
@@ -204,21 +177,24 @@ fun App(
                         }
 
                         WebpayScreen(
+                            pagoId = appViewModel.pagoWebpayId,
                             montoTotal = total,
                             token = tokenLogueado,
                             concepto = if (webpayOrigen == "Donacion") "DON" else "ORDEN",
                             modifier = Modifier.padding(innerPadding),
+                            viewModel = webpayViewModel,
                             onPagoTerminado = {
-                                if (webpayOrigen == "Donacion") {
+                                if (appViewModel.webpayOrigen == "Donacion") {
                                     formularioViewModel.confirmarDonacion {
-                                        ultimaDonacionMonto = montoDonacionPendiente
-                                        montoDonacionPendiente = 0
-                                        webpayOrigen = "Carrito"
-                                        pantallaActual = "DonacionConfirmada"
+                                        appViewModel.ultimaDonacionMonto =
+                                            appViewModel.montoDonacionPendiente
+                                        appViewModel.montoDonacionPendiente = 0
+                                        appViewModel.webpayOrigen = "Carrito"
+                                        appViewModel.pantallaActual = "DonacionConfirmada"
                                     }
                                 } else {
                                     // El carrito se conserva hasta mostrar la confirmación.
-                                    pantallaActual = "ConfirmacionCompra"
+                                    appViewModel.pantallaActual = "ConfirmacionCompra"
                                 }
                             }
                         )
@@ -229,10 +205,10 @@ fun App(
                             monto = ultimaDonacionMonto,
                             modifier = Modifier.padding(innerPadding),
                             onVolverInicio = {
-                                pantallaActual = "Inicio"
+                                appViewModel.pantallaActual = "Inicio"
                             },
                             onVerColaboradores = {
-                                pantallaActual = "Colaboradores"
+                                appViewModel.pantallaActual = "Colaboradores"
                             }
                         )
                     }
@@ -243,9 +219,9 @@ fun App(
                             modifier = Modifier.padding(innerPadding),
                             onNavigate = { destino ->
                                 if (destino == "Inicio") {
-                                    carrito.clear()
+                                    appViewModel.carrito.clear()
                                 }
-                                pantallaActual = destino
+                                appViewModel.pantallaActual = destino
                             }
                         )
                     }
@@ -255,7 +231,7 @@ fun App(
                             modifier = Modifier.padding(innerPadding),
                             contenidoViewModel = contenidoViewModel,
                             onNavigate = { destino ->
-                                pantallaActual = destino
+                                appViewModel.pantallaActual = destino
                             }
                         )
                     }
@@ -266,13 +242,11 @@ fun App(
                             viewModel = formularioViewModel,
                             token = tokenLogueado,
                             onIrALogin = {
-                                pantallaPostLogin = "Donaciones"
-                                pantallaActual = "Login"
+                                appViewModel.pantallaPostLogin = "Donaciones"
+                                appViewModel.pantallaActual = "Login"
                             },
                             onIrAWebpay = { monto ->
-                                montoDonacionPendiente = monto
-                                webpayOrigen = "Donacion"
-                                pantallaActual = "Webpay"
+                                appViewModel.navegarAWebpay("Donacion", monto)
                             }
                         )
                     }
@@ -294,19 +268,18 @@ fun App(
                         LoginScreen(
                             modifier = Modifier.padding(innerPadding),
                             onIrARegistro = {
-                                pantallaActual = "Registro"
+                                appViewModel.pantallaActual = "Registro"
                             },
                             onIrAAdmin = {
-                                pantallaPostLogin = "Inicio"
-                                pantallaActual = "AdminLogin"
+                                appViewModel.pantallaPostLogin = "Inicio"
+                                appViewModel.pantallaActual = "AdminLogin"
                             },
                             onLoginExitoso = { email, password, token ->
                                 adminViewModel.cerrarSesion()
-                                emailLogueado = email
-                                passwordLogueada = password
-                                tokenLogueado = token
-                                pantallaActual = pantallaPostLogin
-                                pantallaPostLogin = "Inicio"
+                                appViewModel.iniciarSesion(email, password, token)
+                                appViewModel.pantallaActual =
+                                    appViewModel.pantallaPostLogin
+                                appViewModel.pantallaPostLogin = "Inicio"
                             }
                         )
                     }
@@ -315,7 +288,7 @@ fun App(
                         RegistroScreen(
                             modifier = Modifier.padding(innerPadding),
                             onRegistroExitoso = {
-                                pantallaActual = "Login"
+                                appViewModel.pantallaActual = "Login"
                             }
                         )
                     }
@@ -327,7 +300,7 @@ fun App(
                                     modifier = Modifier.padding(innerPadding),
                                     viewModel = contenidoViewModel,
                                     onVolver = {
-                                        pantallaActual = "AdminPanel"
+                                        appViewModel.pantallaActual = "AdminPanel"
                                     }
                                 )
                             } else {
@@ -335,10 +308,10 @@ fun App(
                                     modifier = Modifier.padding(innerPadding),
                                     viewModel = adminViewModel,
                                     onEditarContenido = {
-                                        pantallaActual = "AdminContenido"
+                                        appViewModel.pantallaActual = "AdminContenido"
                                     },
                                     onCerrarSesion = {
-                                        pantallaActual = "Inicio"
+                                        appViewModel.pantallaActual = "Inicio"
                                     }
                                 )
                             }
@@ -347,13 +320,11 @@ fun App(
                                 modifier = Modifier.padding(innerPadding),
                                 viewModel = adminViewModel,
                                 onLoginExitoso = {
-                                    emailLogueado = ""
-                                    passwordLogueada = ""
-                                    tokenLogueado = ""
-                                    pantallaActual = "AdminPanel"
+                                    appViewModel.cerrarSesion()
+                                    appViewModel.pantallaActual = "AdminPanel"
                                 },
                                 onVolver = {
-                                    pantallaActual = "Inicio"
+                                    appViewModel.pantallaActual = "Inicio"
                                 }
                             )
                         }
@@ -363,14 +334,12 @@ fun App(
                         PerfilScreen(
                             modifier = Modifier.padding(innerPadding),
                             email = emailLogueado,
-                            passwordRaw = passwordLogueada,
+                            passwordRaw = appViewModel.passwordLogueada,
                             modoOscuro = modoOscuro,
                             onModoOscuroChange = onModoOscuroChange,
                             onCerrarSesion = {
-                                emailLogueado = ""
-                                passwordLogueada = ""
-                                tokenLogueado = ""
-                                pantallaActual = "Inicio"
+                                appViewModel.cerrarSesion()
+                                appViewModel.pantallaActual = "Inicio"
                             }
                         )
                     }
@@ -382,7 +351,7 @@ fun App(
                             totalDonaciones = resumenDonaciones.total,
                             cantidadDonaciones = resumenDonaciones.cantidad,
                             onNavigate = { destino ->
-                                pantallaActual = destino
+                                appViewModel.pantallaActual = destino
                             }
                         )
                     }

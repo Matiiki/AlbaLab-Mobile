@@ -34,7 +34,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -55,16 +55,23 @@ fun LoginScreen(
     viewModel: AuthViewModel = viewModel()
 ) {
 
-    var email by remember {
+    var email by rememberSaveable {
         mutableStateOf("")
     }
 
-    var password by remember {
+    var password by rememberSaveable {
         mutableStateOf("")
+    }
+
+    var erroresLimpiados by rememberSaveable {
+        mutableStateOf(false)
     }
 
     LaunchedEffect(Unit) {
-        viewModel.limpiarErrores()
+        if (!erroresLimpiados) {
+            viewModel.limpiarErrores()
+            erroresLimpiados = true
+        }
     }
 
     val textFieldColors = OutlinedTextFieldDefaults.colors(
