@@ -2,6 +2,7 @@ package com.example.albalab.ui.screens
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -50,11 +52,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
@@ -72,23 +74,23 @@ import java.util.TimeZone
 fun DonacionesScreen(
     modifier: Modifier = Modifier,
     viewModel: FormularioViewModel2 = viewModel(),
-    onGuardarExitoso: () -> Unit
+    token: String = "",
+    onIrALogin: () -> Unit = {},
+    onIrAWebpay: (Int) -> Unit = {}
 ) {
     // Paleta de colores personalizada
-    val AzulPrimario = Color(0xFF0D47A1)
-    val AzulMedio = Color(0xFF1976D2)
-    val CelesteFondo = Color(0xFFF0F8FF)
-    val CelesteClaro = Color(0xFFE3F2FD)
-    val Blanco = Color(0xFFFFFFFF)
+    val AzulPrimario = MaterialTheme.colorScheme.primary
+    val AzulMedio = MaterialTheme.colorScheme.secondary
+    val CelesteFondo = MaterialTheme.colorScheme.background
+    val CelesteClaro = MaterialTheme.colorScheme.primaryContainer
+    val Blanco = MaterialTheme.colorScheme.surface
 
     val formulario by viewModel.formulario2.collectAsState()
     val errores by viewModel.errores2.collectAsState()
 
     val context = LocalContext.current
 
-    var fotoUri by remember { mutableStateOf<android.net.Uri?>(null) }
-    var donacionAnonima by remember { mutableStateOf<Boolean?>(null) }
-    var uriTemporal by remember { mutableStateOf<android.net.Uri?>(null) }
+    var uriTemporal by remember { mutableStateOf<Uri?>(null) }
 
     // Guardamos automáticamente la fecha actual
     LaunchedEffect(Unit) {
@@ -98,23 +100,16 @@ fun DonacionesScreen(
     }
 
     // ------------------------------------------------
-    // GUARDAR DONACIÓN EN ROOM
+    // PREPARAR PAGO CON WEBPAY
     // ------------------------------------------------
-    fun guardarDonacion() {
-        val esAnonima = donacionAnonima
-        if (esAnonima == null) {
-            Toast.makeText(context, "Debes indicar si la donación será anónima", Toast.LENGTH_SHORT).show()
+    fun prepararPagoDonacion() {
+        val pendiente = viewModel.prepararDonacion()
+        if (pendiente == null) {
+            Toast.makeText(context, "Revisa los datos de la donación", Toast.LENGTH_SHORT).show()
             return
         }
 
-        viewModel.guardarDonacionRoom(
-            esAnonimo = esAnonima,
-            fotoUri = fotoUri,
-            onGuardado = {
-                Toast.makeText(context, "Donación guardada correctamente", Toast.LENGTH_SHORT).show()
-                onGuardarExitoso()
-            }
-        )
+        onIrAWebpay(pendiente.monto)
     }
 
     // ------------------------------------------------
@@ -124,7 +119,7 @@ fun DonacionesScreen(
         contract = ActivityResultContracts.TakePicture(),
         onResult = { exito ->
             if (exito) {
-                fotoUri = uriTemporal
+                viewModel.actualizarFotoUri(uriTemporal?.toString())
             } else {
                 viewModel.actualizarAceptaCamara(false)
             }
@@ -161,7 +156,7 @@ fun DonacionesScreen(
                     Toast.makeText(context, "Error: $errString", Toast.LENGTH_SHORT).show()
                 }
                 override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                    guardarDonacion()
+                    prepararPagoDonacion()
                 }
                 override fun onAuthenticationFailed() {
                     Toast.makeText(context, "Biometría no reconocida", Toast.LENGTH_SHORT).show()
@@ -185,6 +180,7 @@ fun DonacionesScreen(
         modifier = modifier
             .fillMaxSize()
             .background(CelesteFondo)
+            .imePadding()
             .verticalScroll(rememberScrollState())
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp),
@@ -267,13 +263,10 @@ fun DonacionesScreen(
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             RadioButton(
-                                selected = donacionAnonima == true,
+                                selected = formulario.esAnonimo == true,
                                 onClick = {
-                                    donacionAnonima = true
-                                    fotoUri = null
+                                    viewModel.actualizarEsAnonimo(true)
                                     uriTemporal = null
-                                    viewModel.actualizarAceptaCamara(false)
-                                    viewModel.actualizarNombre("") // Limpia el nombre en el ViewModel
                                 },
                                 colors = RadioButtonDefaults.colors(selectedColor = AzulPrimario)
                             )
@@ -281,9 +274,9 @@ fun DonacionesScreen(
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             RadioButton(
-                                selected = donacionAnonima == false,
+                                selected = formulario.esAnonimo == false,
                                 onClick = {
-                                    donacionAnonima = false
+                                    viewModel.actualizarEsAnonimo(false)
                                     viewModel.actualizarAceptaCamara(true)
 
                                     val permisoConcedido = ContextCompat.checkSelfPermission(
@@ -307,29 +300,41 @@ fun DonacionesScreen(
 
                 // NOMBRE
                 OutlinedTextField(
-                    value = if (donacionAnonima == true) "Anónimo" else formulario.nombre,
-                    onValueChange = { if (donacionAnonima != true) viewModel.actualizarNombre(it) },
+                    value = if (formulario.esAnonimo == true) "Anónimo" else formulario.nombre,
+                    onValueChange = { if (formulario.esAnonimo != true) viewModel.actualizarNombre(it) },
                     label = { Text("Nombre") },
-                    enabled = donacionAnonima != true,
+                    enabled = formulario.esAnonimo != true,
                     leadingIcon = {
-                        Icon(Icons.Default.Person, contentDescription = "Nombre", tint = if (donacionAnonima == true) Color.Gray else AzulMedio)
+                        Icon(
+                            Icons.Default.Person,
+                            contentDescription = "Nombre",
+                            tint = if (formulario.esAnonimo == true) {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            } else {
+                                AzulMedio
+                            }
+                        )
                     },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    isError = errores.nombre != null && donacionAnonima != true,
+                    isError = errores.nombre != null && formulario.esAnonimo != true,
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = AzulPrimario,
                         unfocusedBorderColor = AzulMedio,
                         focusedLabelColor = AzulPrimario,
-                        unfocusedContainerColor = if (donacionAnonima == true) Color.LightGray.copy(alpha = 0.2f) else CelesteClaro.copy(alpha = 0.4f),
+                        unfocusedContainerColor = if (formulario.esAnonimo == true) {
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        } else {
+                            CelesteClaro.copy(alpha = 0.4f)
+                        },
                         focusedContainerColor = Blanco,
-                        disabledBorderColor = Color.LightGray,
-                        disabledLabelColor = Color.Gray,
-                        disabledTextColor = Color.DarkGray
+                        disabledBorderColor = MaterialTheme.colorScheme.outline,
+                        disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        disabledTextColor = MaterialTheme.colorScheme.onSurface
                     ),
                     supportingText = {
-                        if (donacionAnonima != true) {
+                        if (formulario.esAnonimo != true) {
                             errores.nombre?.let { Text(it) }
                         }
                     }
@@ -359,32 +364,51 @@ fun DonacionesScreen(
                 )
 
                 // FOTO
-                if (donacionAnonima == false && fotoUri != null) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    AsyncImage(
-                        model = fotoUri,
-                        contentDescription = "Foto del donante",
-                        modifier = Modifier
-                            .size(120.dp)
-                            .clip(CircleShape)
-                            .border(3.dp, AzulMedio, CircleShape)
-                            .align(Alignment.CenterHorizontally),
-                        contentScale = ContentScale.Crop
-                    )
+                if (formulario.esAnonimo == false) {
+                    formulario.fotoUri?.let { foto ->
+                        Spacer(modifier = Modifier.height(8.dp))
+                        AsyncImage(
+                            model = Uri.parse(foto),
+                            contentDescription = "Foto del donante",
+                            modifier = Modifier
+                                .size(120.dp)
+                                .clip(CircleShape)
+                                .border(3.dp, AzulMedio, CircleShape)
+                                .align(Alignment.CenterHorizontally),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
                 }
             }
+        }
+
+        if (token.isBlank()) {
+            Text(
+                text = "Inicia sesión para pagar la donación con Webpay.",
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
 
         // BOTÓN PAGAR
         Button(
             onClick = {
-                if (donacionAnonima == null) {
+                val esAnonima = formulario.esAnonimo
+                if (esAnonima == null) {
                     Toast.makeText(context, "Selecciona si la donación será anónima", Toast.LENGTH_SHORT).show()
                     return@Button
                 }
 
-                val formularioValido = viewModel.validarFormulario(esAnonimo = donacionAnonima == true)
+                val formularioValido = viewModel.validarFormulario(esAnonimo = esAnonima)
                 if (!formularioValido) return@Button
+
+                if (token.isBlank()) {
+                    Toast.makeText(context, "Debes iniciar sesión para pagar con Webpay", Toast.LENGTH_LONG).show()
+                    onIrALogin()
+                    return@Button
+                }
 
                 val biometricStatus = biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK)
 
@@ -392,7 +416,7 @@ fun DonacionesScreen(
                     biometricPrompt.authenticate(promptInfo)
                 } else {
                     Toast.makeText(context, "Biometría no disponible. Continuando sin autenticación.", Toast.LENGTH_SHORT).show()
-                    guardarDonacion()
+                    prepararPagoDonacion()
                 }
             },
             modifier = Modifier
@@ -401,7 +425,7 @@ fun DonacionesScreen(
             shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = AzulPrimario,
-                contentColor = Blanco
+                contentColor = MaterialTheme.colorScheme.onPrimary
             ),
             elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
         ) {
@@ -413,7 +437,7 @@ fun DonacionesScreen(
                     .size(20.dp)
             )
             Text(
-                text = "PAGAR DONACIÓN",
+                text = "PAGAR CON WEBPAY",
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.titleMedium
             )

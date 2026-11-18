@@ -26,6 +26,10 @@ class AuthViewModel : ViewModel() {
     var errorConfirmarPassword by mutableStateOf<String?>(null)
         private set
 
+    // Token JWT de la sesión normal
+    var token by mutableStateOf("")
+        private set
+
     // Para evitar presionar varias veces el botón
     var cargando by mutableStateOf(false)
         private set
@@ -191,7 +195,7 @@ class AuthViewModel : ViewModel() {
     fun login(
         email: String,
         password: String,
-        onSuccess: () -> Unit
+        onSuccess: (String) -> Unit
     ) {
 
         if (
@@ -228,11 +232,15 @@ class AuthViewModel : ViewModel() {
                             usuario
                         )
 
+                val tokenRecibido = response.body()?.token
+
                 if (
-                    response.isSuccessful
+                    response.isSuccessful &&
+                    !tokenRecibido.isNullOrBlank()
                 ) {
 
-                    onSuccess()
+                    token = tokenRecibido
+                    onSuccess(tokenRecibido)
 
                 } else {
 

@@ -1,17 +1,22 @@
 package com.example.albalab
 
+import android.app.Activity
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.albalab.ui.theme.AlbaLabTheme
-import androidx.fragment.app.FragmentActivity // Agrega esto arriba
+import com.example.albalab.viewmodel.ThemeViewModel
+import androidx.fragment.app.FragmentActivity
 
-class MainActivity : FragmentActivity() { // Cambia ComponentActivity por esto
+class MainActivity : FragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -20,14 +25,29 @@ class MainActivity : FragmentActivity() { // Cambia ComponentActivity por esto
         enableEdgeToEdge()
 
         setContent {
-            AlbaLabTheme {
-                // Surface actúa como el fondo base de la app, aplicando los colores de tu tema
+            val themeViewModel: ThemeViewModel = viewModel()
+            val modoOscuro = themeViewModel.modoOscuro
+
+            // Mantiene los íconos de las barras del sistema legibles según el tema
+            val view = LocalView.current
+            SideEffect {
+                val activity = view.context as? Activity ?: return@SideEffect
+                WindowCompat.getInsetsController(activity.window, view).apply {
+                    isAppearanceLightStatusBars = false
+                    isAppearanceLightNavigationBars = !modoOscuro
+                }
+            }
+
+            AlbaLabTheme(darkTheme = modoOscuro) {
+                // Surface actúa como el fondo base de la app, aplicando los colores del tema
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    // Aquí llamamos a tu función principal que contiene el Scaffold y el menú
-                    App()
+                    App(
+                        modoOscuro = modoOscuro,
+                        onModoOscuroChange = themeViewModel::actualizarModoOscuro
+                    )
                 }
             }
         }

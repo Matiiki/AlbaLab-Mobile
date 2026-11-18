@@ -1,12 +1,12 @@
 package com.example.albalab.viewmodel
 
 import android.app.Application
-import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.albalab.data.local.AlbaLabDatabase
 import com.example.albalab.data.repository.DonacionRepository
 import com.example.albalab.model.Colaborador
+import com.example.albalab.model.DonacionPendiente
 import com.example.albalab.model.FormularioModelDonaciones
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -15,12 +15,19 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.text.NumberFormat
+import java.util.Locale
 
 data class FormularioErrores2(
     val monto: String? = null,
     val nombre: String? = null,
     val fecha: String? = null,
     val aceptaCamara: Boolean = false
+)
+
+data class ResumenDonaciones(
+    val total: Int = 0,
+    val cantidad: Int = 0
 )
 
 class FormularioViewModel2(
@@ -61,6 +68,13 @@ class FormularioViewModel2(
             StateFlow<FormularioErrores2> =
         _errores2.asStateFlow()
 
+    private val _donacionPendiente =
+        MutableStateFlow<DonacionPendiente?>(null)
+
+    val donacionPendiente:
+            StateFlow<DonacionPendiente?> =
+        _donacionPendiente.asStateFlow()
+
     // -----------------------------
     // COLABORADORES DESDE ROOM
     // -----------------------------
@@ -87,7 +101,10 @@ class FormularioViewModel2(
                             registro.colaborador.fotoUri,
 
                         montoOculto =
-                            "$${registro.monto}"
+                            formatearMonto(registro.monto),
+
+                        esAnonimo =
+                            registro.colaborador.esAnonimo
                     )
                 }
             }
@@ -98,6 +115,25 @@ class FormularioViewModel2(
                         5000
                     ),
                 initialValue = emptyList()
+            )
+
+    val resumenDonaciones:
+            StateFlow<ResumenDonaciones> =
+        repository
+            .donaciones
+            .map { lista ->
+                ResumenDonaciones(
+                    total = lista.sumOf { it.monto },
+                    cantidad = lista.size
+                )
+            }
+            .stateIn(
+                scope = viewModelScope,
+                started =
+                    SharingStarted.WhileSubscribed(
+                        5000
+                    ),
+                initialValue = ResumenDonaciones()
             )
 
     // -----------------------------
@@ -148,6 +184,44 @@ class FormularioViewModel2(
         _formulario2.value =
             _formulario2.value.copy(
                 aceptaCamara = valor
+            )
+    }
+
+    fun actualizarEsAnonimo(
+        valor: Boolean?
+    ) {
+
+        _formulario2.value =
+            _formulario2.value.copy(
+                esAnonimo = valor,
+                nombre =
+                    if (valor == true) {
+                        ""
+                    } else {
+                        _formulario2.value.nombre
+                    },
+                fotoUri =
+                    if (valor == true) {
+                        null
+                    } else {
+                        _formulario2.value.fotoUri
+                    },
+                aceptaCamara =
+                    if (valor == true) {
+                        false
+                    } else {
+                        _formulario2.value.aceptaCamara
+                    }
+            )
+    }
+
+    fun actualizarFotoUri(
+        valor: String?
+    ) {
+
+        _formulario2.value =
+            _formulario2.value.copy(
+                fotoUri = valor
             )
     }
 
@@ -224,21 +298,17 @@ class FormularioViewModel2(
     }
 
     // -----------------------------
-    // GUARDAR EN ROOM
+    // DONACIÓN CON WEBPAY
     // -----------------------------
 
-    fun guardarDonacionRoom(
-        esAnonimo: Boolean,
-        fotoUri: Uri?,
-        onGuardado: () -> Unit
-    ) {
+    fun prepararDonacion(): DonacionPendiente? {
 
-        if (
-            !validarFormulario(
-                esAnonimo
-            )
-        ) {
-            return
+        val esAnonimo =
+            _formulario2.value.esAnonimo
+                ?: return null
+
+        if (!validarFormulario(esAnonimo)) {
+            return null
         }
 
         val datos =
@@ -246,27 +316,73 @@ class FormularioViewModel2(
 
         val monto =
             datos.monto.toIntOrNull()
-                ?: return
+                ?: return null
 
-        val fecha =
-            datos.fecha
-                ?: System.currentTimeMillis()
+        val pendiente = DonacionPendiente(
+            nombre =
+                if (esAnonimo) {
+                    "Anónimo"
+                } else {
+                    datos.nombre
+                },
+            fotoUri =
+                if (esAnonimo) {
+                    null
+                } else {
+                    datos.fotoUri
+                },
+            esAnonimo = esAnonimo,
+            monto = monto,
+            fecha =
+                datos.fecha
+                    ?: System.currentTimeMillis()
+        )
+
+        _donacionPendiente.value =
+            pendiente
+
+        return pendiente
+    }
+
+    fun confirmarDonacion(
+        onGuardado: () -> Unit
+    ) {
+
+        val pendiente =
+            _donacionPendiente.value
+                ?: return
 
         viewModelScope.launch {
 
             repository.guardarDonacion(
-                nombre = datos.nombre,
-                fotoUri =
-                    fotoUri?.toString(),
-                esAnonimo = esAnonimo,
-                monto = monto,
-                fecha = fecha
+                nombre = pendiente.nombre,
+                fotoUri = pendiente.fotoUri,
+                esAnonimo = pendiente.esAnonimo,
+                monto = pendiente.monto,
+                fecha = pendiente.fecha
             )
 
             limpiarFormulario()
+            _donacionPendiente.value = null
 
             onGuardado()
         }
+    }
+
+    fun cancelarDonacionPendiente() {
+        _donacionPendiente.value = null
+    }
+
+    private fun formatearMonto(
+        monto: Int
+    ): String {
+
+        val formato =
+            NumberFormat.getIntegerInstance(
+                Locale("es", "CL")
+            )
+
+        return "$" + formato.format(monto)
     }
 
     // -----------------------------

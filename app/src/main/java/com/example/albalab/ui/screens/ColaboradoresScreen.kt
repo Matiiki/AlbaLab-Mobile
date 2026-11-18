@@ -1,18 +1,27 @@
 package com.example.albalab.ui.screens
 
 import android.net.Uri
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
@@ -21,6 +30,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -30,10 +40,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.example.albalab.model.Colaborador
 import com.example.albalab.viewmodel.FormularioViewModel2
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -43,121 +58,277 @@ fun ColaboradoresScreen(
     viewModel: FormularioViewModel2 = viewModel()
 ) {
 
+    val azulPrimario = MaterialTheme.colorScheme.primary
+    val azulMedio = MaterialTheme.colorScheme.secondary
+    val celesteFondo = MaterialTheme.colorScheme.background
+    val celesteClaro = MaterialTheme.colorScheme.primaryContainer
+    val blanco = MaterialTheme.colorScheme.surface
+
     val colaboradores by viewModel.listaColaboradores.collectAsState()
 
-    // 1. Estado para guardar el texto del buscador
     var searchText by remember { mutableStateOf("") }
 
-    // 2. Filtramos la lista en tiempo real basada en la búsqueda
     val colaboradoresFiltrados = colaboradores.filter { colaborador ->
-        val nombre = if (colaborador.fotoUri == null || colaborador.nombre.isBlank()) {
-            "Anónimo"
-        } else {
-            colaborador.nombre
-        }
-        // Ignora mayúsculas/minúsculas al buscar
-        nombre.contains(searchText, ignoreCase = true)
+        colaborador.nombre.contains(searchText, ignoreCase = true)
     }
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(20.dp)
+            .background(celesteFondo)
+            .imePadding()
+            .padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
-        Text(
-            text = "Nuestros Colaboradores",
-            style = MaterialTheme.typography.headlineMedium,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Group,
+                contentDescription = "Colaboradores",
+                tint = azulMedio,
+                modifier = Modifier.size(48.dp)
+            )
 
-        // 3. El componente del buscador
-        OutlinedTextField(
-            value = searchText,
-            onValueChange = { searchText = it },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp),
-            placeholder = { Text("Buscar colaborador...") },
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = "Icono de búsqueda"
+            Text(
+                text = "Nuestros Colaboradores",
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.Bold,
+                color = azulPrimario,
+                textAlign = TextAlign.Center
+            )
+
+            Text(
+                text = "Gracias a quienes hacen posible Alba Lab.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = azulMedio,
+                textAlign = TextAlign.Center
+            )
+        }
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = blanco),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            OutlinedTextField(
+                value = searchText,
+                onValueChange = { searchText = it },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp),
+                placeholder = { Text("Buscar colaborador...") },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = "Buscar colaborador",
+                        tint = azulMedio
+                    )
+                },
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = azulPrimario,
+                    unfocusedBorderColor = azulMedio,
+                    focusedLabelColor = azulPrimario,
+                    unfocusedContainerColor = celesteClaro.copy(alpha = 0.3f),
+                    focusedContainerColor = blanco
                 )
-            },
-            singleLine = true
-        )
-
-        // 4. Manejo de estados (vacío, sin resultados y lista con datos)
-        if (colaboradores.isEmpty()) {
-            Text(
-                text = "Aún no hay colaboradores. ¡Sé el primero!"
             )
-        } else if (colaboradoresFiltrados.isEmpty()) {
-            Text(
-                text = "No se encontraron resultados para '$searchText'"
-            )
-        } else {
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                // Iteramos sobre la lista filtrada, no sobre la original
-                items(colaboradoresFiltrados) { colaborador ->
+        }
 
-                    val esAnonimo = colaborador.fotoUri == null
-                    val nombreMostrar = if (esAnonimo) {
-                        "Anónimo"
-                    } else {
-                        colaborador.nombre.ifBlank { "Anónimo" }
+        when {
+            colaboradores.isEmpty() -> {
+                EmptyColaboradoresCard(
+                    titulo = "Aún no hay colaboradores",
+                    mensaje = "Las donaciones realizadas aparecerán en esta pantalla.",
+                    azulPrimario = azulPrimario,
+                    azulMedio = azulMedio,
+                    blanco = blanco
+                )
+            }
+
+            colaboradoresFiltrados.isEmpty() -> {
+                EmptyColaboradoresCard(
+                    titulo = "Sin resultados",
+                    mensaje = "No se encontraron colaboradores para '$searchText'.",
+                    azulPrimario = azulPrimario,
+                    azulMedio = azulMedio,
+                    blanco = blanco
+                )
+            }
+
+            else -> {
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(colaboradoresFiltrados) { colaborador ->
+                        ColaboradorCard(
+                            colaborador = colaborador,
+                            azulPrimario = azulPrimario,
+                            azulMedio = azulMedio,
+                            celesteClaro = celesteClaro,
+                            blanco = blanco
+                        )
                     }
 
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        elevation = CardDefaults.cardElevation(
-                            defaultElevation = 2.dp
-                        )
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            if (!esAnonimo) {
-                                AsyncImage(
-                                    model = Uri.parse(colaborador.fotoUri),
-                                    contentDescription = "Foto de $nombreMostrar",
-                                    modifier = Modifier.size(60.dp),
-                                    contentScale = ContentScale.Crop
-                                )
-                            } else {
-                                Icon(
-                                    imageVector = Icons.Default.Person,
-                                    contentDescription = "Donación anónima",
-                                    modifier = Modifier.size(60.dp)
-                                )
-                            }
-
-                            Spacer(
-                                modifier = Modifier.width(16.dp)
-                            )
-
-                            Column {
-                                Text(
-                                    text = nombreMostrar,
-                                    style = MaterialTheme.typography.titleMedium
-                                )
-
-                                Text(
-                                    text = "Donación: ${colaborador.montoOculto}",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
+                    item {
+                        Spacer(modifier = Modifier.height(8.dp))
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun ColaboradorCard(
+    colaborador: Colaborador,
+    azulPrimario: Color,
+    azulMedio: Color,
+    celesteClaro: Color,
+    blanco: Color
+) {
+
+    val foto = colaborador.fotoUri
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = blanco),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+
+            if (!colaborador.esAnonimo && foto != null) {
+                AsyncImage(
+                    model = Uri.parse(foto),
+                    contentDescription = "Foto de ${colaborador.nombre}",
+                    modifier = Modifier
+                        .size(68.dp)
+                        .clip(CircleShape)
+                        .border(3.dp, azulMedio, CircleShape),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(68.dp)
+                        .clip(CircleShape)
+                        .background(celesteClaro),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = if (colaborador.esAnonimo) {
+                            "Donación anónima"
+                        } else {
+                            "Colaborador"
+                        },
+                        tint = azulMedio,
+                        modifier = Modifier.size(38.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = colaborador.nombre,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = azulPrimario
+                )
+
+                Text(
+                    text = if (colaborador.esAnonimo) {
+                        "Donación anónima"
+                    } else {
+                        "Colaborador de Alba Lab"
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = azulMedio
+                )
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Favorite,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.size(16.dp)
+                    )
+
+                    Spacer(modifier = Modifier.width(4.dp))
+
+                    Text(
+                        text = "Donación: ${colaborador.montoOculto}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = azulPrimario
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EmptyColaboradoresCard(
+    titulo: String,
+    mensaje: String,
+    azulPrimario: Color,
+    azulMedio: Color,
+    blanco: Color
+) {
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = blanco),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Favorite,
+                contentDescription = null,
+                tint = azulMedio,
+                modifier = Modifier.size(48.dp)
+            )
+
+            Text(
+                text = titulo,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = azulPrimario,
+                textAlign = TextAlign.Center
+            )
+
+            Text(
+                text = mensaje,
+                style = MaterialTheme.typography.bodyMedium,
+                color = azulMedio,
+                textAlign = TextAlign.Center
+            )
         }
     }
 }

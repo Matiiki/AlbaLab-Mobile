@@ -13,3 +13,11 @@ data class WebpayResponse(
     val url: String,
     val token: String
 )
+
+data class ConfirmarPagoRequest(
+    val token: String
+)
+
+data class PagoWebpayResponse(
+    val estado: String? = null
+)
