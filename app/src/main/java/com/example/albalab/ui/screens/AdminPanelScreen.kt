@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.EditNote
+import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -51,6 +52,7 @@ fun AdminPanelScreen(
     modifier: Modifier = Modifier,
     viewModel: AdminViewModel,
     onEditarContenido: () -> Unit,
+    onGestionarProductos: () -> Unit,
     onCerrarSesion: () -> Unit
 ) {
     var emailNuevo by rememberSaveable { mutableStateOf("") }
@@ -76,6 +78,7 @@ fun AdminPanelScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .imePadding()
             .padding(16.dp)
     ) {
@@ -203,6 +206,50 @@ fun AdminPanelScreen(
             }
         }
 
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Card(
+            onClick = onGestionarProductos,
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.tertiaryContainer
+            )
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Inventory2,
+                    contentDescription = "Gestionar productos",
+                    tint = MaterialTheme.colorScheme.onTertiaryContainer
+                )
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Gestionar productos",
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                    )
+                    Text(
+                        text = "Crea, edita o elimina los productos del catálogo.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                    )
+                }
+
+                Icon(
+                    imageVector = Icons.Default.ChevronRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onTertiaryContainer
+                )
+            }
+        }
+
         if (viewModel.mensajeError.isNotEmpty()) {
             Text(
                 text = viewModel.mensajeError,
@@ -246,14 +293,10 @@ fun AdminPanelScreen(
 
         Spacer(modifier = Modifier.height(4.dp))
 
-        LazyColumn(
-            modifier = Modifier.weight(1f),
+        Column(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(
-                items = viewModel.admins,
-                key = { admin -> admin.id }
-            ) { admin ->
+            viewModel.admins.forEach { admin ->
                 AdminItem(
                     admin = admin,
                     onEditar = { adminEditandoId = admin.id },
@@ -262,13 +305,11 @@ fun AdminPanelScreen(
             }
 
             if (viewModel.admins.isEmpty() && !viewModel.cargandoLista) {
-                item {
-                    Text(
-                        text = "No hay administradores registrados.",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(8.dp)
-                    )
-                }
+                Text(
+                    text = "No hay administradores registrados.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(8.dp)
+                )
             }
         }
     }

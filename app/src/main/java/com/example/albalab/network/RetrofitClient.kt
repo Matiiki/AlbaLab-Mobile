@@ -44,4 +44,15 @@ object RetrofitClient {
             .build()
             .create(AdminApi::class.java)
     }
+
+    // El catálogo pasa por el gateway, que valida el token de administrador
+    // para las operaciones de escritura.
+    val productApiService: ProductApi by lazy {
+        Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .client(httpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(ProductApi::class.java)
+    }
 }

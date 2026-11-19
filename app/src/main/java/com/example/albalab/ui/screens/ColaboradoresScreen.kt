@@ -24,8 +24,10 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -33,6 +35,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -48,7 +51,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
-import com.example.albalab.model.Colaborador
+import com.example.albalab.model.ColaboradorPublico
 import com.example.albalab.viewmodel.FormularioViewModel2
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -64,12 +67,19 @@ fun ColaboradoresScreen(
     val celesteClaro = MaterialTheme.colorScheme.primaryContainer
     val blanco = MaterialTheme.colorScheme.surface
 
-    val colaboradores by viewModel.listaColaboradores.collectAsState()
+    val colaboradores by viewModel.colaboradoresPublicos.collectAsState()
+    val cargando by viewModel.cargandoPublicos.collectAsState()
+    val error by viewModel.errorPublicos.collectAsState()
 
     var searchText by rememberSaveable { mutableStateOf("") }
 
+    LaunchedEffect(Unit) {
+        viewModel.cargarColaboradoresPublicos()
+    }
+
     val colaboradoresFiltrados = colaboradores.filter { colaborador ->
-        colaborador.nombre.contains(searchText, ignoreCase = true)
+        val nombre = nombreVisible(colaborador)
+        nombre.contains(searchText, ignoreCase = true)
     }
 
     Column(
@@ -142,6 +152,23 @@ fun ColaboradoresScreen(
         }
 
         when {
+            cargando && colaboradores.isEmpty() -> {
+                CircularProgressIndicator()
+            }
+
+            error.isNotEmpty() && colaboradores.isEmpty() -> {
+                EmptyColaboradoresCard(
+                    titulo = "No se pudo cargar la lista",
+                    mensaje = error,
+                    azulPrimario = azulPrimario,
+                    azulMedio = azulMedio,
+                    blanco = blanco,
+                    onReintentar = {
+                        viewModel.cargarColaboradoresPublicos()
+                    }
+                )
+            }
+
             colaboradores.isEmpty() -> {
                 EmptyColaboradoresCard(
                     titulo = "Aún no hay colaboradores",
@@ -188,7 +215,7 @@ fun ColaboradoresScreen(
 
 @Composable
 private fun ColaboradorCard(
-    colaborador: Colaborador,
+    colaborador: ColaboradorPublico,
     azulPrimario: Color,
     azulMedio: Color,
     celesteClaro: Color,
@@ -196,6 +223,7 @@ private fun ColaboradorCard(
 ) {
 
     val foto = colaborador.fotoUri
+    val nombre = nombreVisible(colaborador)
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -213,7 +241,7 @@ private fun ColaboradorCard(
             if (!colaborador.esAnonimo && foto != null) {
                 AsyncImage(
                     model = Uri.parse(foto),
-                    contentDescription = "Foto de ${colaborador.nombre}",
+                    contentDescription = "Foto de $nombre",
                     modifier = Modifier
                         .size(68.dp)
                         .clip(CircleShape)
@@ -248,7 +276,7 @@ private fun ColaboradorCard(
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
-                    text = colaborador.nombre,
+                    text = nombre,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = azulPrimario
@@ -275,12 +303,18 @@ private fun ColaboradorCard(
                     Spacer(modifier = Modifier.width(4.dp))
 
                     Text(
-                        text = "Donación: ${colaborador.montoOculto}",
+                        text = "Colaboración registrada",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
                         color = azulPrimario
                     )
                 }
+
+                Text(
+                    text = formatearFecha(colaborador.fecha),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = azulMedio
+                )
             }
         }
     }
@@ -292,7 +326,8 @@ private fun EmptyColaboradoresCard(
     mensaje: String,
     azulPrimario: Color,
     azulMedio: Color,
-    blanco: Color
+    blanco: Color,
+    onReintentar: (() -> Unit)? = null
 ) {
 
     Card(
@@ -329,6 +364,35 @@ private fun EmptyColaboradoresCard(
                 color = azulMedio,
                 textAlign = TextAlign.Center
             )
+
+            if (onReintentar != null) {
+                Button(onClick = onReintentar) {
+                    Text("REINTENTAR")
+                }
+            }
         }
+    }
+}
+
+private fun nombreVisible(colaborador: ColaboradorPublico): String {
+    return if (colaborador.esAnonimo) {
+        "Anonimo"
+    } else {
+        colaborador.nombre
+    }
+}
+
+private fun formatearFecha(fecha: String?): String {
+    if (fecha.isNullOrBlank()) {
+        return "Colaboración registrada"
+    }
+
+    val soloFecha = fecha.substringBefore("T")
+    val partes = soloFecha.split("-")
+
+    return if (partes.size == 3) {
+        "${partes[2]}/${partes[1]}/${partes[0]}"
+    } else {
+        soloFecha
     }
 }

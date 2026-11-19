@@ -19,6 +19,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Person
@@ -26,6 +27,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
@@ -39,6 +42,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.example.albalab.model.ColaboradorResponse
+import java.text.NumberFormat
+import java.util.Locale
 
 @Composable
 fun PerfilScreen(
@@ -47,7 +53,13 @@ fun PerfilScreen(
     passwordRaw: String,
     modoOscuro: Boolean,
     onModoOscuroChange: (Boolean) -> Unit,
-    onCerrarSesion: () -> Unit
+    onCerrarSesion: () -> Unit,
+    misColaboraciones: List<ColaboradorResponse> = emptyList(),
+    totalColaborado: Int = 0,
+    cantidadColaboraciones: Int = 0,
+    cargandoColaboraciones: Boolean = false,
+    errorColaboraciones: String = "",
+    onReintentarColaboraciones: () -> Unit = {}
 ) {
     val passwordOculta = "*".repeat(passwordRaw.length)
     val colorScheme = MaterialTheme.colorScheme
@@ -117,6 +129,121 @@ fun PerfilScreen(
                     etiqueta = "Contraseña",
                     valor = passwordOculta
                 )
+            }
+        }
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = colorScheme.surface),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Favorite,
+                        contentDescription = null,
+                        tint = colorScheme.secondary,
+                        modifier = Modifier.size(24.dp)
+                    )
+
+                    Spacer(modifier = Modifier.width(10.dp))
+
+                    Text(
+                        text = "Mis colaboraciones",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = colorScheme.primary,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Total aportado",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colorScheme.secondary
+                        )
+
+                        Text(
+                            text = formatearMontoPerfil(totalColaborado),
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = colorScheme.primary
+                        )
+                    }
+
+                    Text(
+                        text = if (cantidadColaboraciones == 1) {
+                            "1 colaboración"
+                        } else {
+                            "$cantidadColaboraciones colaboraciones"
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = colorScheme.secondary,
+                        textAlign = TextAlign.End
+                    )
+                }
+
+                HorizontalDivider()
+
+                when {
+                    cargandoColaboraciones -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
+                        }
+                    }
+
+                    errorColaboraciones.isNotEmpty() -> {
+                        Text(
+                            text = errorColaboraciones,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = colorScheme.error
+                        )
+
+                        Button(
+                            onClick = onReintentarColaboraciones,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("REINTENTAR")
+                        }
+                    }
+
+                    misColaboraciones.isEmpty() -> {
+                        Text(
+                            text = "Aún no tienes colaboraciones registradas.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = colorScheme.secondary
+                        )
+                    }
+
+                    else -> {
+                        misColaboraciones.forEachIndexed { index, colaboracion ->
+                            if (index > 0) {
+                                HorizontalDivider()
+                            }
+
+                            ColaboracionPerfilRow(
+                                colaboracion = colaboracion
+                            )
+                        }
+                    }
+                }
             }
         }
 
@@ -246,5 +373,82 @@ private fun PerfilInfoRow(
                 color = colorScheme.onSurface
             )
         }
+    }
+}
+
+@Composable
+private fun ColaboracionPerfilRow(
+    colaboracion: ColaboradorResponse
+) {
+    val colorScheme = MaterialTheme.colorScheme
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = Icons.Default.Favorite,
+            contentDescription = null,
+            tint = colorScheme.secondary,
+            modifier = Modifier.size(22.dp)
+        )
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = if (colaboracion.esAnonimo) {
+                    "Anonimo"
+                } else {
+                    colaboracion.nombre
+                },
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = colorScheme.onSurface
+            )
+
+            Text(
+                text = formatearFechaPerfil(colaboracion.fecha),
+                style = MaterialTheme.typography.bodySmall,
+                color = colorScheme.secondary
+            )
+
+            colaboracion.estado?.takeIf { it.isNotBlank() }?.let { estado ->
+                Text(
+                    text = "Estado: $estado",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colorScheme.primary
+                )
+            }
+        }
+
+        Text(
+            text = formatearMontoPerfil(colaboracion.montoDonacion),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = colorScheme.primary
+        )
+    }
+}
+
+private fun formatearMontoPerfil(monto: Int): String {
+    val formato = NumberFormat.getIntegerInstance(Locale("es", "CL"))
+    return "$" + formato.format(monto)
+}
+
+private fun formatearFechaPerfil(fecha: String?): String {
+    if (fecha.isNullOrBlank()) {
+        return "Sin fecha"
+    }
+
+    val soloFecha = fecha.substringBefore("T")
+    val partes = soloFecha.split("-")
+
+    return if (partes.size == 3) {
+        "${partes[2]}/${partes[1]}/${partes[0]}"
+    } else {
+        soloFecha
     }
 }

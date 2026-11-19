@@ -1,22 +1,23 @@
 package com.example.albalab.viewmodel
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.albalab.data.local.AlbaLabDatabase
-import com.example.albalab.data.repository.DonacionRepository
-import com.example.albalab.model.Colaborador
+import com.example.albalab.model.ColaboradorPublico
+import com.example.albalab.model.ColaboradorRequest
+import com.example.albalab.model.ColaboradorResponse
 import com.example.albalab.model.DonacionPendiente
 import com.example.albalab.model.FormularioModelDonaciones
+import com.example.albalab.network.RetrofitClient
+import com.example.albalab.network.mensajeDeError
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.text.NumberFormat
-import java.util.Locale
 
 data class FormularioErrores2(
     val monto: String? = null,
@@ -30,21 +31,7 @@ data class ResumenDonaciones(
     val cantidad: Int = 0
 )
 
-class FormularioViewModel2(
-    application: Application
-) : AndroidViewModel(application) {
-
-    // -----------------------------
-    // ROOM
-    // -----------------------------
-
-    private val database =
-        AlbaLabDatabase.obtenerDatabase(application)
-
-    private val repository =
-        DonacionRepository(
-            database.albaLabDao()
-        )
+class FormularioViewModel2 : ViewModel() {
 
     // -----------------------------
     // FORMULARIO
@@ -76,65 +63,65 @@ class FormularioViewModel2(
         _donacionPendiente.asStateFlow()
 
     // -----------------------------
-    // COLABORADORES DESDE ROOM
+    // COLABORACIONES REMOTAS
     // -----------------------------
 
-    val listaColaboradores:
-            StateFlow<List<Colaborador>> =
-        repository
-            .colaboradoresConDonaciones
-            .map { lista ->
+    private val _misColaboraciones =
+        MutableStateFlow<List<ColaboradorResponse>>(emptyList())
 
-                lista.map { registro ->
+    val misColaboraciones:
+            StateFlow<List<ColaboradorResponse>> =
+        _misColaboraciones.asStateFlow()
 
-                    Colaborador(
-                        nombre =
-                            if (
-                                registro.colaborador.esAnonimo
-                            ) {
-                                "Anónimo"
-                            } else {
-                                registro.colaborador.nombre
-                            },
+    private val _colaboradoresPublicos =
+        MutableStateFlow<List<ColaboradorPublico>>(emptyList())
 
-                        fotoUri =
-                            registro.colaborador.fotoUri,
+    val colaboradoresPublicos:
+            StateFlow<List<ColaboradorPublico>> =
+        _colaboradoresPublicos.asStateFlow()
 
-                        montoOculto =
-                            formatearMonto(registro.monto),
-
-                        esAnonimo =
-                            registro.colaborador.esAnonimo
-                    )
-                }
-            }
-            .stateIn(
-                scope = viewModelScope,
-                started =
-                    SharingStarted.WhileSubscribed(
-                        5000
-                    ),
-                initialValue = emptyList()
-            )
+    private val _resumenDonaciones =
+        MutableStateFlow(ResumenDonaciones())
 
     val resumenDonaciones:
             StateFlow<ResumenDonaciones> =
-        repository
-            .donaciones
-            .map { lista ->
-                ResumenDonaciones(
-                    total = lista.sumOf { it.monto },
-                    cantidad = lista.size
-                )
-            }
-            .stateIn(
-                scope = viewModelScope,
-                started =
-                    SharingStarted.WhileSubscribed(
-                        5000
-                    ),
-                initialValue = ResumenDonaciones()
-            )
+        _resumenDonaciones.asStateFlow()
+
+    private val _cargandoMis =
+        MutableStateFlow(false)
+
+    val cargandoMis: StateFlow<Boolean> =
+        _cargandoMis.asStateFlow()
+
+    private val _errorMis =
+        MutableStateFlow("")
+
+    val errorMis: StateFlow<String> =
+        _errorMis.asStateFlow()
+
+    private val _cargandoPublicos =
+        MutableStateFlow(false)
+
+    val cargandoPublicos: StateFlow<Boolean> =
+        _cargandoPublicos.asStateFlow()
+
+    private val _errorPublicos =
+        MutableStateFlow("")
+
+    val errorPublicos: StateFlow<String> =
+        _errorPublicos.asStateFlow()
+
+    /**
+     * Se activa cuando el backend responde 401. App lo observa para
+     * cerrar la sesión y volver al login.
+     */
+    var sesionExpirada by mutableStateOf(false)
+        private set
+
+    private var trabajoMis: Job? = null
+    private var trabajoPublicos: Job? = null
+    private var generacionMis = 0
+    private var generacionPublicos = 0
 
     // -----------------------------
     // ACTUALIZAR FORMULARIO
@@ -145,6 +132,7 @@ class FormularioViewModel2(
     ) {
 
         if (
+            valor.isEmpty() ||
             valor.all {
                 it.isDigit()
             }
@@ -321,9 +309,9 @@ class FormularioViewModel2(
         val pendiente = DonacionPendiente(
             nombre =
                 if (esAnonimo) {
-                    "Anónimo"
+                    "Anonimo"
                 } else {
-                    datos.nombre
+                    datos.nombre.trim()
                 },
             fotoUri =
                 if (esAnonimo) {
@@ -335,7 +323,8 @@ class FormularioViewModel2(
             monto = monto,
             fecha =
                 datos.fecha
-                    ?: System.currentTimeMillis()
+                    ?: System.currentTimeMillis(),
+            webpayOrden = generarOrdenDonacion()
         )
 
         _donacionPendiente.value =
@@ -344,50 +333,45 @@ class FormularioViewModel2(
         return pendiente
     }
 
-    fun confirmarDonacion(
-        onGuardado: () -> Unit
+    /**
+     * Convierte la donación preparada en el cuerpo exacto que espera
+     * POST /api/colaboradores. La misma orden se usa en Webpay y en el POST.
+     */
+    fun crearRequestColaboracion(
+        pendiente: DonacionPendiente
+    ): ColaboradorRequest {
+
+        return ColaboradorRequest(
+            nombre = pendiente.nombre,
+            fotoUri = pendiente.fotoUri,
+            montoDonacion = pendiente.monto,
+            esAnonimo = pendiente.esAnonimo,
+            webpayOrden = pendiente.webpayOrden
+        )
+    }
+
+    fun finalizarDonacionExitosa(
+        token: String
     ) {
 
-        val pendiente =
-            _donacionPendiente.value
-                ?: return
+        limpiarFormulario()
+        _donacionPendiente.value = null
+        sesionExpirada = false
 
-        viewModelScope.launch {
-
-            repository.guardarDonacion(
-                nombre = pendiente.nombre,
-                fotoUri = pendiente.fotoUri,
-                esAnonimo = pendiente.esAnonimo,
-                monto = pendiente.monto,
-                fecha = pendiente.fecha
-            )
-
-            limpiarFormulario()
-            _donacionPendiente.value = null
-
-            onGuardado()
+        if (token.isNotBlank()) {
+            cargarMisColaboraciones(token)
         }
+
+        cargarColaboradoresPublicos()
     }
 
     fun cancelarDonacionPendiente() {
         _donacionPendiente.value = null
     }
 
-    private fun formatearMonto(
-        monto: Int
-    ): String {
-
-        val formato =
-            NumberFormat.getIntegerInstance(
-                Locale("es", "CL")
-            )
-
-        return "$" + formato.format(monto)
+    private fun generarOrdenDonacion(): String {
+        return "DON-${System.currentTimeMillis()}"
     }
-
-    // -----------------------------
-    // LIMPIAR FORMULARIO
-    // -----------------------------
 
     private fun limpiarFormulario() {
 
@@ -396,5 +380,167 @@ class FormularioViewModel2(
 
         _errores2.value =
             FormularioErrores2()
+    }
+
+    // -----------------------------
+    // MIS COLABORACIONES
+    // -----------------------------
+
+    fun cargarMisColaboraciones(
+        token: String
+    ) {
+
+        if (token.isBlank()) {
+            limpiarSesion()
+            return
+        }
+
+        trabajoMis?.cancel()
+
+        val generacion = ++generacionMis
+
+        _cargandoMis.value = true
+        _errorMis.value = ""
+
+        trabajoMis = viewModelScope.launch {
+
+            try {
+
+                val response =
+                    RetrofitClient.apiService.obtenerMisColaboraciones(
+                        authorization = "Bearer $token"
+                    )
+
+                if (generacion != generacionMis) {
+                    return@launch
+                }
+
+                if (response.isSuccessful) {
+
+                    val lista =
+                        response.body() ?: emptyList()
+
+                    _misColaboraciones.value =
+                        lista
+
+                    _resumenDonaciones.value =
+                        ResumenDonaciones(
+                            total = lista.sumOf {
+                                it.montoDonacion
+                            },
+                            cantidad = lista.size
+                        )
+
+                    sesionExpirada = false
+
+                } else if (response.code() == 401) {
+
+                    _misColaboraciones.value = emptyList()
+                    _resumenDonaciones.value = ResumenDonaciones()
+                    _errorMis.value =
+                        "Tu sesión expiró. Inicia sesión nuevamente."
+                    sesionExpirada = true
+
+                } else {
+
+                    _errorMis.value =
+                        response.mensajeDeError(
+                            "No se pudieron cargar tus colaboraciones."
+                        )
+                }
+
+            } catch (e: CancellationException) {
+
+                throw e
+
+            } catch (e: Exception) {
+
+                if (generacion == generacionMis) {
+                    _errorMis.value =
+                        "No se pudieron cargar tus colaboraciones. Revisa la conexión."
+                }
+
+            } finally {
+
+                if (generacion == generacionMis) {
+                    _cargandoMis.value = false
+                }
+            }
+        }
+    }
+
+    // -----------------------------
+    // COLABORADORES PÚBLICOS
+    // -----------------------------
+
+    fun cargarColaboradoresPublicos() {
+
+        trabajoPublicos?.cancel()
+
+        val generacion = ++generacionPublicos
+
+        _cargandoPublicos.value = true
+        _errorPublicos.value = ""
+
+        trabajoPublicos = viewModelScope.launch {
+
+            try {
+
+                val response =
+                    RetrofitClient.apiService.obtenerColaboradoresPublicos()
+
+                if (generacion != generacionPublicos) {
+                    return@launch
+                }
+
+                if (response.isSuccessful) {
+
+                    _colaboradoresPublicos.value =
+                        response.body() ?: emptyList()
+
+                } else {
+
+                    _errorPublicos.value =
+                        response.mensajeDeError(
+                            "No se pudo cargar la lista de colaboradores."
+                        )
+                }
+
+            } catch (e: CancellationException) {
+
+                throw e
+
+            } catch (e: Exception) {
+
+                if (generacion == generacionPublicos) {
+                    _errorPublicos.value =
+                        "No se pudo cargar la lista de colaboradores. Revisa la conexión."
+                }
+
+            } finally {
+
+                if (generacion == generacionPublicos) {
+                    _cargandoPublicos.value = false
+                }
+            }
+        }
+    }
+
+    // -----------------------------
+    // SESIÓN
+    // -----------------------------
+
+    fun limpiarSesion() {
+
+        trabajoMis?.cancel()
+        trabajoMis = null
+        generacionMis++
+
+        _misColaboraciones.value = emptyList()
+        _resumenDonaciones.value = ResumenDonaciones()
+        _cargandoMis.value = false
+        _errorMis.value = ""
+        _donacionPendiente.value = null
+        sesionExpirada = false
     }
 }

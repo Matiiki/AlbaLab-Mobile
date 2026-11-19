@@ -10,8 +10,11 @@ data class WebpayRequest(
 
 // Lo que nos responde el backend
 data class WebpayResponse(
-    val url: String,
-    val token: String
+    val id: Long? = null,
+    val ordenCompra: String? = null,
+    val token: String = "",
+    val url: String = "",
+    val estado: String? = null
 )
 
 data class ConfirmarPagoRequest(
@@ -19,5 +22,11 @@ data class ConfirmarPagoRequest(
 )
 
 data class PagoWebpayResponse(
-    val estado: String? = null
+    val id: Long? = null,
+    val ordenCompra: String? = null,
+    val token: String? = null,
+    val estado: String? = null,
+    val monto: Double? = null,
+    val montoFinal: Double? = null,
+    val codigoRespuesta: Int? = null
 )

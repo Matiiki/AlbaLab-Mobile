@@ -1,5 +1,6 @@
 package com.example.albalab.ui.screens
 
+import android.graphics.Bitmap
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -18,9 +19,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.albalab.model.ColaboradorRequest
 import com.example.albalab.viewmodel.WebpayViewModel
 
 @Composable
@@ -29,6 +32,8 @@ fun WebpayScreen(
     montoTotal: Double,
     token: String,
     concepto: String = "ORDEN",
+    ordenCompra: String? = null,
+    colaboracion: ColaboradorRequest? = null,
     modifier: Modifier = Modifier,
     viewModel: WebpayViewModel = viewModel(),
     onPagoTerminado: () -> Unit
@@ -39,15 +44,28 @@ fun WebpayScreen(
             pagoId = pagoId,
             montoTotal = montoTotal,
             tokenUsuario = token,
-            concepto = concepto
+            ordenCompra = ordenCompra,
+            colaboracion = colaboracion
         )
+    }
+
+    // La navegación solo ocurre cuando el backend ya guardó la colaboración
+    // (o cuando terminó un pago de carrito, que no registra colaboración).
+    LaunchedEffect(viewModel.pagoTerminado) {
+        if (viewModel.pagoTerminado) {
+            onPagoTerminado()
+        }
     }
 
     val cargando = viewModel.cargando
     val webpayUrl = viewModel.webpayUrl
     val webpayToken = viewModel.webpayToken
     val mensajeError = viewModel.mensajeError
+    val errorColaboracion = viewModel.errorColaboracion
     val confirmando = viewModel.confirmando
+    val guardandoColaboracion = viewModel.guardandoColaboracion
+    val pagoAprobado = viewModel.pagoAprobado
+    val pagoTerminado = viewModel.pagoTerminado
 
     Box(
         modifier = modifier
@@ -60,7 +78,7 @@ fun WebpayScreen(
                 CircularProgressIndicator()
             }
 
-            webpayUrl != null && webpayToken != null -> {
+            webpayUrl != null && webpayToken != null && !pagoAprobado -> {
                 val url = webpayUrl
                 val tokenTransaccion = webpayToken
 
@@ -80,8 +98,7 @@ fun WebpayScreen(
 
                                     if (nuevaUrl.contains("/api/webpay/retorno")) {
                                         viewModel.confirmarPago(
-                                            tokenUsuario = token,
-                                            onPagoAprobado = onPagoTerminado
+                                            tokenUsuario = token
                                         )
 
                                         return true
@@ -89,13 +106,56 @@ fun WebpayScreen(
 
                                     return false
                                 }
+
+                                // Algunos WebView no llaman shouldOverrideUrlLoading
+                                // cuando el retorno de Transbank llega por POST.
+                                override fun onPageStarted(
+                                    view: WebView?,
+                                    url: String?,
+                                    favicon: Bitmap?
+                                ) {
+                                    super.onPageStarted(view, url, favicon)
+
+                                    if (url?.contains("/api/webpay/retorno") == true) {
+                                        viewModel.confirmarPago(
+                                            tokenUsuario = token
+                                        )
+                                    }
+                                }
                             }
 
-                            val postData = "token_ws=$tokenTransaccion".toByteArray(Charsets.UTF_8)
+                            val postData =
+                                "token_ws=$tokenTransaccion".toByteArray(Charsets.UTF_8)
                             postUrl(url, postData)
                         }
                     }
                 )
+            }
+
+            guardandoColaboracion -> {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    CircularProgressIndicator()
+                    Text(
+                        text = "Pago aprobado. Guardando colaboración...",
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+
+            pagoAprobado && pagoTerminado -> {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    CircularProgressIndicator()
+                    Text(
+                        text = "Pago completado. Redirigiendo...",
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
 
             else -> {
@@ -105,29 +165,60 @@ fun WebpayScreen(
                     modifier = Modifier.padding(24.dp)
                 ) {
                     Text(
-                        text = "No se pudo completar el pago"
+                        text = if (pagoAprobado) {
+                            "El pago fue aprobado"
+                        } else {
+                            "No se pudo completar el pago"
+                        },
+                        textAlign = TextAlign.Center
                     )
 
                     mensajeError?.let {
-                        Text(text = it)
+                        Text(
+                            text = it,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+
+                    errorColaboracion?.let {
+                        Text(
+                            text = it,
+                            textAlign = TextAlign.Center,
+                            color = androidx.compose.material3.MaterialTheme.colorScheme.error
+                        )
+                    }
+
+                    if (pagoAprobado) {
+                        Text(
+                            text = "Reintentar el guardado no volverá a realizar el cobro.",
+                            textAlign = TextAlign.Center
+                        )
                     }
 
                     Button(
                         onClick = {
-                            viewModel.reintentar(
-                                montoTotal = montoTotal,
-                                tokenUsuario = token,
-                                concepto = concepto
-                            )
+                            viewModel.reintentarProceso()
                         }
                     ) {
-                        Text("REINTENTAR")
+                        Text(
+                            text = if (pagoAprobado) {
+                                "REINTENTAR GUARDADO"
+                            } else {
+                                "REINTENTAR PAGO"
+                            }
+                        )
                     }
                 }
             }
         }
 
-        if (confirmando) {
+        val textoOverlay = when {
+            guardandoColaboracion -> "Guardando colaboración..."
+            confirmando -> "Confirmando pago..."
+            else -> null
+        }
+
+        if (textoOverlay != null) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -140,8 +231,9 @@ fun WebpayScreen(
                 ) {
                     CircularProgressIndicator(color = Color.White)
                     Text(
-                        text = "Confirmando pago...",
-                        color = Color.White
+                        text = textoOverlay,
+                        color = Color.White,
+                        textAlign = TextAlign.Center
                     )
                 }
             }

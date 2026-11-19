@@ -53,6 +53,7 @@ import java.util.Locale
 fun InicioScreen(
     modifier: Modifier = Modifier,
     adminLogueado: Boolean = false,
+    usuarioLogueado: Boolean = false,
     totalDonaciones: Int = 0,
     cantidadDonaciones: Int = 0,
     onNavigate: (String) -> Unit
@@ -235,7 +236,7 @@ fun InicioScreen(
             }
         }
 
-        if (adminLogueado) {
+        if (adminLogueado || usuarioLogueado) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -267,7 +268,11 @@ fun InicioScreen(
 
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Donaciones acumuladas",
+                            text = if (usuarioLogueado) {
+                                "Tus colaboraciones"
+                            } else {
+                                "Donaciones acumuladas"
+                            },
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary

@@ -5,5 +5,6 @@ data class DonacionPendiente(
     val fotoUri: String?,
     val esAnonimo: Boolean,
     val monto: Int,
-    val fecha: Long
+    val fecha: Long,
+    val webpayOrden: String
 )

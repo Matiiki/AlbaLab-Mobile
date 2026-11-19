@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -21,6 +22,7 @@ import com.example.albalab.components.AppTopBar
 import com.example.albalab.ui.screens.AdminContenidoScreen
 import com.example.albalab.ui.screens.AdminLoginScreen
 import com.example.albalab.ui.screens.AdminPanelScreen
+import com.example.albalab.ui.screens.AdminProductosScreen
 import com.example.albalab.ui.screens.CarritoScreen
 import com.example.albalab.ui.screens.ColaboradoresScreen
 import com.example.albalab.ui.screens.ConfirmacionCompraScreen
@@ -35,10 +37,12 @@ import com.example.albalab.ui.screens.WebpayScreen
 import com.example.albalab.ui.theme.screens.InicioScreen
 import com.example.albalab.ui.theme.screens.NosotrosScreen
 import com.example.albalab.ui.theme.screens.ProductosScreen
+import com.example.albalab.viewmodel.AdminProductoViewModel
 import com.example.albalab.viewmodel.AdminViewModel
 import com.example.albalab.viewmodel.AppViewModel
 import com.example.albalab.viewmodel.ContenidoViewModel
 import com.example.albalab.viewmodel.FormularioViewModel2
+import com.example.albalab.viewmodel.ProductoViewModel
 import com.example.albalab.viewmodel.WebpayViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -52,11 +56,25 @@ fun App(
     val webpayViewModel: WebpayViewModel = viewModel()
 
     val adminViewModel: AdminViewModel = viewModel()
+    val adminProductoViewModel: AdminProductoViewModel = viewModel()
+    val productoViewModel: ProductoViewModel = viewModel()
     val formularioViewModel: FormularioViewModel2 = viewModel()
     val contenidoViewModel: ContenidoViewModel = viewModel()
 
     val resumenDonaciones by
         formularioViewModel.resumenDonaciones.collectAsState()
+
+    val misColaboraciones by
+        formularioViewModel.misColaboraciones.collectAsState()
+
+    val cargandoMisColaboraciones by
+        formularioViewModel.cargandoMis.collectAsState()
+
+    val errorMisColaboraciones by
+        formularioViewModel.errorMis.collectAsState()
+
+    val donacionPendiente by
+        formularioViewModel.donacionPendiente.collectAsState()
 
     val pantallaActual = appViewModel.pantallaActual
     val carrito = appViewModel.carrito
@@ -67,6 +85,37 @@ fun App(
     val tokenLogueado = appViewModel.tokenLogueado
 
     val isLoggedIn = emailLogueado.isNotEmpty() || adminViewModel.estaLogueado
+
+    // La lista pública se carga siempre, con o sin sesión.
+    LaunchedEffect(Unit) {
+        formularioViewModel.cargarColaboradoresPublicos()
+    }
+
+    // El resumen del inicio y "Mis colaboraciones" salen de /mios.
+    LaunchedEffect(tokenLogueado) {
+        if (tokenLogueado.isBlank()) {
+            formularioViewModel.limpiarSesion()
+        } else {
+            formularioViewModel.cargarMisColaboraciones(tokenLogueado)
+        }
+    }
+
+    // Un 401 desde /mios, Webpay o el POST de colaboración cierra la sesión.
+    LaunchedEffect(
+        formularioViewModel.sesionExpirada,
+        webpayViewModel.sesionExpirada
+    ) {
+        if (
+            formularioViewModel.sesionExpirada ||
+            webpayViewModel.sesionExpirada
+        ) {
+            appViewModel.cerrarSesion()
+            formularioViewModel.limpiarSesion()
+            webpayViewModel.limpiarSesion()
+            appViewModel.pantallaPostLogin = "Inicio"
+            appViewModel.pantallaActual = "Login"
+        }
+    }
 
     AppDrawer(
         pantallaActual = pantallaActual,
@@ -127,6 +176,7 @@ fun App(
                         InicioScreen(
                             modifier = Modifier.padding(innerPadding),
                             adminLogueado = adminViewModel.estaLogueado,
+                            usuarioLogueado = emailLogueado.isNotEmpty(),
                             totalDonaciones = resumenDonaciones.total,
                             cantidadDonaciones = resumenDonaciones.cantidad,
                             onNavigate = { destino ->
@@ -139,6 +189,7 @@ fun App(
                         ProductosScreen(
                             carrito = carrito,
                             modifier = Modifier.padding(innerPadding),
+                            viewModel = productoViewModel,
                             onNavigate = { destino ->
                                 appViewModel.pantallaActual = destino
                             }
@@ -170,34 +221,66 @@ fun App(
                     }
 
                     "Webpay" -> {
-                        val total = if (webpayOrigen == "Donacion") {
-                            montoDonacionPendiente.toDouble()
-                        } else {
-                            carrito.sumOf { it.precio }.toDouble()
-                        }
+                        val esDonacion = webpayOrigen == "Donacion"
+                        val pendiente = donacionPendiente
 
-                        WebpayScreen(
-                            pagoId = appViewModel.pagoWebpayId,
-                            montoTotal = total,
-                            token = tokenLogueado,
-                            concepto = if (webpayOrigen == "Donacion") "DON" else "ORDEN",
-                            modifier = Modifier.padding(innerPadding),
-                            viewModel = webpayViewModel,
-                            onPagoTerminado = {
-                                if (appViewModel.webpayOrigen == "Donacion") {
-                                    formularioViewModel.confirmarDonacion {
+                        if (esDonacion && pendiente == null) {
+                            // No hay datos de donación (por ejemplo, tras perder
+                            // el proceso). Volver al formulario evita cobrar sin
+                            // poder registrar la colaboración.
+                            LaunchedEffect(Unit) {
+                                appViewModel.pantallaActual = "Donaciones"
+                            }
+                        } else {
+                            val total = if (esDonacion) {
+                                pendiente?.monto?.toDouble()
+                                    ?: montoDonacionPendiente.toDouble()
+                            } else {
+                                carrito.sumOf { it.precio }.toDouble()
+                            }
+
+                            val colaboracion = if (esDonacion && pendiente != null) {
+                                formularioViewModel.crearRequestColaboracion(pendiente)
+                            } else {
+                                null
+                            }
+
+                            WebpayScreen(
+                                pagoId = appViewModel.pagoWebpayId,
+                                montoTotal = total,
+                                token = tokenLogueado,
+                                concepto = if (esDonacion) "DON" else "ORDEN",
+                                ordenCompra = if (esDonacion) {
+                                    pendiente?.webpayOrden
+                                } else {
+                                    null
+                                },
+                                colaboracion = colaboracion,
+                                modifier = Modifier.padding(innerPadding),
+                                viewModel = webpayViewModel,
+                                onPagoTerminado = {
+                                    if (esDonacion) {
                                         appViewModel.ultimaDonacionMonto =
-                                            appViewModel.montoDonacionPendiente
+                                            pendiente?.monto
+                                                ?: appViewModel.montoDonacionPendiente
+
+                                        // Navegar primero evita que una
+                                        // recomposición vuelva a entrar a Webpay.
+                                        appViewModel.pantallaActual = "DonacionConfirmada"
+
                                         appViewModel.montoDonacionPendiente = 0
                                         appViewModel.webpayOrigen = "Carrito"
-                                        appViewModel.pantallaActual = "DonacionConfirmada"
+
+                                        formularioViewModel.finalizarDonacionExitosa(
+                                            tokenLogueado
+                                        )
+                                    } else {
+                                        // El carrito se conserva hasta mostrar la confirmación.
+                                        appViewModel.pantallaActual = "ConfirmacionCompra"
                                     }
-                                } else {
-                                    // El carrito se conserva hasta mostrar la confirmación.
-                                    appViewModel.pantallaActual = "ConfirmacionCompra"
                                 }
-                            }
-                        )
+                            )
+                        }
                     }
 
                     "DonacionConfirmada" -> {
@@ -293,27 +376,46 @@ fun App(
                         )
                     }
 
-                    "AdminLogin", "AdminPanel", "AdminContenido" -> {
+                    "AdminLogin", "AdminPanel", "AdminContenido", "AdminProductos" -> {
                         if (adminViewModel.estaLogueado) {
-                            if (pantalla == "AdminContenido") {
-                                AdminContenidoScreen(
-                                    modifier = Modifier.padding(innerPadding),
-                                    viewModel = contenidoViewModel,
-                                    onVolver = {
-                                        appViewModel.pantallaActual = "AdminPanel"
-                                    }
-                                )
-                            } else {
-                                AdminPanelScreen(
-                                    modifier = Modifier.padding(innerPadding),
-                                    viewModel = adminViewModel,
-                                    onEditarContenido = {
-                                        appViewModel.pantallaActual = "AdminContenido"
-                                    },
-                                    onCerrarSesion = {
-                                        appViewModel.pantallaActual = "Inicio"
-                                    }
-                                )
+                            when (pantalla) {
+                                "AdminContenido" -> {
+                                    AdminContenidoScreen(
+                                        modifier = Modifier.padding(innerPadding),
+                                        viewModel = contenidoViewModel,
+                                        onVolver = {
+                                            appViewModel.pantallaActual = "AdminPanel"
+                                        }
+                                    )
+                                }
+
+                                "AdminProductos" -> {
+                                    AdminProductosScreen(
+                                        modifier = Modifier.padding(innerPadding),
+                                        viewModel = adminProductoViewModel,
+                                        token = adminViewModel.token,
+                                        onVolver = {
+                                            appViewModel.pantallaActual = "AdminPanel"
+                                        }
+                                    )
+                                }
+
+                                else -> {
+                                    AdminPanelScreen(
+                                        modifier = Modifier.padding(innerPadding),
+                                        viewModel = adminViewModel,
+                                        onEditarContenido = {
+                                            appViewModel.pantallaActual = "AdminContenido"
+                                        },
+                                        onGestionarProductos = {
+                                            appViewModel.pantallaActual = "AdminProductos"
+                                        },
+                                        onCerrarSesion = {
+                                            adminProductoViewModel.limpiarProductos()
+                                            appViewModel.pantallaActual = "Inicio"
+                                        }
+                                    )
+                                }
                             }
                         } else {
                             AdminLoginScreen(
@@ -337,8 +439,22 @@ fun App(
                             passwordRaw = appViewModel.passwordLogueada,
                             modoOscuro = modoOscuro,
                             onModoOscuroChange = onModoOscuroChange,
+                            misColaboraciones = misColaboraciones,
+                            totalColaborado = resumenDonaciones.total,
+                            cantidadColaboraciones = resumenDonaciones.cantidad,
+                            cargandoColaboraciones = cargandoMisColaboraciones,
+                            errorColaboraciones = errorMisColaboraciones,
+                            onReintentarColaboraciones = {
+                                if (tokenLogueado.isNotBlank()) {
+                                    formularioViewModel.cargarMisColaboraciones(
+                                        tokenLogueado
+                                    )
+                                }
+                            },
                             onCerrarSesion = {
                                 appViewModel.cerrarSesion()
+                                formularioViewModel.limpiarSesion()
+                                webpayViewModel.limpiarSesion()
                                 appViewModel.pantallaActual = "Inicio"
                             }
                         )
@@ -348,6 +464,7 @@ fun App(
                         InicioScreen(
                             modifier = Modifier.padding(innerPadding),
                             adminLogueado = adminViewModel.estaLogueado,
+                            usuarioLogueado = emailLogueado.isNotEmpty(),
                             totalDonaciones = resumenDonaciones.total,
                             cantidadDonaciones = resumenDonaciones.cantidad,
                             onNavigate = { destino ->

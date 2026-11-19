@@ -131,7 +131,8 @@ fun AppDrawer(
                         label = { Text("Administración") },
                         selected = pantallaActual == "AdminLogin" ||
                             pantallaActual == "AdminPanel" ||
-                            pantallaActual == "AdminContenido",
+                            pantallaActual == "AdminContenido" ||
+                            pantallaActual == "AdminProductos",
                         onClick = {
                             onPantallaSeleccionada("AdminLogin")
                             scope.launch {
