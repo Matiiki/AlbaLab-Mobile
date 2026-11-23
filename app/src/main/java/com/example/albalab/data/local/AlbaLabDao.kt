@@ -93,6 +93,24 @@ interface AlbaLabDao {
     @Query("DELETE FROM donaciones")
     suspend fun borrarDonaciones()
 
-    @Query("DELETE FROM contactos")
-    suspend fun borrarContactos()
+    // ------------------------------------------------
+    // COMPRAS
+    // ------------------------------------------------
+
+    @Insert(
+        onConflict = OnConflictStrategy.REPLACE
+    )
+    suspend fun insertarCompra(
+        compra: CompraEntity
+    ): Long
+
+    @Query(
+        "SELECT * FROM compras WHERE usuarioEmail = :email ORDER BY fecha DESC"
+    )
+    fun obtenerComprasPorUsuario(
+        email: String
+    ): Flow<List<CompraEntity>>
+
+    @Query("DELETE FROM compras")
+    suspend fun borrarCompras()
 }

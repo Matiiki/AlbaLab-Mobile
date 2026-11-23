@@ -1,4 +1,4 @@
-package com.example.albalab.ui.screens
+﻿package com.example.albalab.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -13,7 +13,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -37,8 +39,13 @@ fun ResumenCompraScreen(
     val nombreError by viewModel.nombreError.collectAsState()
     val correoError by viewModel.correoError.collectAsState()
     val direccionError by viewModel.direccionError.collectAsState()
+    val tasas by viewModel.tasas.collectAsState()
 
     val totalCarrito = carrito.sumOf { it.precio }
+
+    LaunchedEffect(Unit) {
+        viewModel.cargarTasas()
+    }
 
     Column(
         modifier = modifier
@@ -67,6 +74,30 @@ fun ResumenCompraScreen(
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary
         )
+
+        if (tasas == null) {
+            Text(
+                text = "Cargando conversión de moneda...",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.secondary
+            )
+        }
+        tasas?.let { rates ->
+            rates["USD"]?.let { usd ->
+                Text(
+                    text = "${"%.2f".format(totalCarrito * usd)} USD (aprox.)",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.secondary
+                )
+            }
+            rates["EUR"]?.let { eur ->
+                Text(
+                    text = "${"%.2f".format(totalCarrito * eur)} EUR (aprox.)",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.secondary
+                )
+            }
+        }
 
         OutlinedTextField(
             value = formulario.nombre,
@@ -108,7 +139,7 @@ fun ResumenCompraScreen(
                 viewModel.actualizarDireccion(it)
             },
             label = {
-                Text("Dirección")
+                Text("DirecciÃ³n")
             },
             isError = direccionError != null,
             supportingText = {

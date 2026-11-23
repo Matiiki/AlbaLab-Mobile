@@ -37,6 +37,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -53,6 +55,10 @@ import androidx.compose.ui.unit.dp
 import com.example.albalab.components.ProductoImagen
 import com.example.albalab.model.ProductoModel
 import com.example.albalab.model.ProductoRequest
+import androidx.compose.ui.platform.LocalContext
+import android.net.Uri
+import android.content.Context
+import java.io.File
 import com.example.albalab.viewmodel.AdminProductoViewModel
 import java.text.NumberFormat
 import java.util.Locale
@@ -206,6 +212,7 @@ fun AdminProductosScreen(
         ProductoFormDialog(
             producto = productoEditando,
             guardando = viewModel.guardando,
+            viewModel = viewModel,
             onDismiss = {
                 if (!viewModel.guardando) {
                     mostrarFormulario = false
@@ -352,6 +359,7 @@ private fun AdminProductoItem(
 private fun ProductoFormDialog(
     producto: ProductoModel?,
     guardando: Boolean,
+    viewModel: AdminProductoViewModel,
     onDismiss: () -> Unit,
     onGuardar: (ProductoRequest) -> Unit
 ) {
@@ -424,6 +432,41 @@ private fun ProductoFormDialog(
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri)
                 )
+
+                val context = LocalContext.current
+                val launcher = rememberLauncherForActivityResult(
+                    ActivityResultContracts.GetContent()
+                ) { uri: Uri? ->
+                    if (uri != null) {
+                        val archivo = uriToFile(context, uri)
+                        if (archivo != null) {
+                            viewModel.subirImagenProducto(archivo) { url ->
+                                imagenUrl = url
+                            }
+                        } else {
+                            errorLocal = "No se pudo leer la imagen seleccionada"
+                        }
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    TextButton(
+                        onClick = { launcher.launch("image/*") },
+                        enabled = !guardando
+                    ) {
+                        Text("Subir imagen desde galería")
+                    }
+                    if (guardando) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp
+                        )
+                    }
+                }
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -502,4 +545,16 @@ private fun ProductoFormDialog(
 private fun formatearPrecio(precio: Int): String {
     val formato = NumberFormat.getIntegerInstance(Locale("es", "CL"))
     return "$" + formato.format(precio)
+}
+
+private fun uriToFile(context: Context, uri: Uri): File? {
+    return try {
+        val input = context.contentResolver.openInputStream(uri) ?: return null
+        val file = File(context.cacheDir, "upload_{System.currentTimeMillis()}.jpg")
+        file.outputStream().use { out -> input.copyTo(out) }
+        input.close()
+        file
+    } catch (e: Exception) {
+        null
+    }
 }

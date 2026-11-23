@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -42,6 +43,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.example.albalab.data.local.CompraEntity
 import com.example.albalab.model.ColaboradorResponse
 import java.text.NumberFormat
 import java.util.Locale
@@ -59,6 +61,7 @@ fun PerfilScreen(
     cantidadColaboraciones: Int = 0,
     cargandoColaboraciones: Boolean = false,
     errorColaboraciones: String = "",
+    compras: List<CompraEntity> = emptyList(),
     onReintentarColaboraciones: () -> Unit = {}
 ) {
     val passwordOculta = "*".repeat(passwordRaw.length)
@@ -240,6 +243,83 @@ fun PerfilScreen(
 
                             ColaboracionPerfilRow(
                                 colaboracion = colaboracion
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = colorScheme.surface),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ShoppingCart,
+                        contentDescription = null,
+                        tint = colorScheme.secondary,
+                        modifier = Modifier.size(24.dp)
+                    )
+
+                    Spacer(modifier = Modifier.width(10.dp))
+
+                    Text(
+                        text = "Historial de compras",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = colorScheme.primary,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                if (compras.isEmpty()) {
+                    Text(
+                        text = "Aun no tienes compras registradas.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = colorScheme.secondary
+                    )
+                } else {
+                    compras.forEachIndexed { index, compra ->
+                        if (index > 0) {
+                            HorizontalDivider()
+                        }
+
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = java.text.SimpleDateFormat(
+                                    "dd/MM/yyyy",
+                                    java.util.Locale.getDefault()
+                                ).format(java.util.Date(compra.fecha)),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = colorScheme.secondary
+                            )
+
+                            Text(
+                                text = compra.productos,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = colorScheme.onSurface
+                            )
+
+                            Text(
+                                text = formatearMontoPerfil(compra.total),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = colorScheme.primary
                             )
                         }
                     }

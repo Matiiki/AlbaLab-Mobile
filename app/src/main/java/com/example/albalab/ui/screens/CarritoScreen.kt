@@ -1,4 +1,4 @@
-package com.example.albalab.ui.screens
+﻿package com.example.albalab.ui.screens
 
 import android.widget.Toast
 import androidx.biometric.BiometricManager
@@ -43,6 +43,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -56,6 +59,8 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import com.example.albalab.components.ProductoImagen
 import com.example.albalab.model.ProductoModel
+import com.example.albalab.viewmodel.ResumenCompraViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -63,7 +68,8 @@ import java.util.Locale
 fun CarritoScreen(
     carrito: MutableList<ProductoModel>,
     modifier: Modifier = Modifier,
-    onNavigate: (String) -> Unit
+    onNavigate: (String) -> Unit,
+    monedaViewModel: ResumenCompraViewModel = viewModel()
 ) {
 
     val context = LocalContext.current
@@ -83,7 +89,7 @@ fun CarritoScreen(
                 ) {
                     Toast.makeText(
                         context,
-                        "Autenticación cancelada: $errString",
+                        "AutenticaciÃ³n cancelada: $errString",
                         Toast.LENGTH_SHORT
                     ).show()
                 }
@@ -121,6 +127,12 @@ fun CarritoScreen(
 
     val totalCarrito = carrito.sumOf { it.precio }
     val productosAgrupados = carrito.groupBy { it.nombre }
+
+    val tasas by monedaViewModel.tasas.collectAsState()
+
+    LaunchedEffect(Unit) {
+        monedaViewModel.cargarTasas()
+    }
 
     Column(
         modifier = modifier
@@ -315,6 +327,30 @@ fun CarritoScreen(
                             color = MaterialTheme.colorScheme.primary
                         )
                     }
+
+                    if (tasas == null) {
+                        Text(
+                            text = "Cargando conversión de moneda...",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                    }
+                    tasas?.let { rates ->
+                        rates["USD"]?.let { usd ->
+                            Text(
+                                text = "${"%.2f".format(totalCarrito * usd)} USD (aprox.)",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.secondary
+                            )
+                        }
+                        rates["EUR"]?.let { eur ->
+                            Text(
+                                text = "${"%.2f".format(totalCarrito * eur)} EUR (aprox.)",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.secondary
+                            )
+                        }
+                    }
                 }
             }
 
@@ -484,7 +520,7 @@ fun CarritoScreen(
                     } else {
                         Toast.makeText(
                             context,
-                            "Biometría no disponible. Continuando con la compra.",
+                            "BiometrÃ­a no disponible. Continuando con la compra.",
                             Toast.LENGTH_SHORT
                         ).show()
 

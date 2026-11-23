@@ -19,6 +19,24 @@ object RetrofitClient {
 
     const val WEBPAY_RETURN_URL = BASE_URL + "api/webpay/retorno"
 
+    // APIs externas (sin backend propio)
+    const val FRANKFURTER_BASE_URL = "https://open.er-api.com/v6/"
+    const val ABSTRACT_EMAIL_BASE_URL = "https://emailvalidation.abstractapi.com/"
+    const val NUMVERIFY_BASE_URL = "http://apilayer.net/"
+    const val CLOUDINARY_UPLOAD_URL = "https://api.cloudinary.com/v1_1/"
+
+    // Host de imágenes sin key (fallback funcional)
+    const val UGUU_BASE_URL = "https://uguu.se/"
+
+    // DNS-over-HTTPS (Google) para validar dominio del email sin key
+    const val GOOGLE_DNS_BASE_URL = "https://dns.google/"
+
+    // Configura tus keys/preset aquí (déjalos vacíos para desactivar la integración)
+    const val ABSTRACT_EMAIL_API_KEY = ""
+    const val NUMVERIFY_API_KEY = ""
+    const val CLOUDINARY_CLOUD_NAME = ""
+    const val CLOUDINARY_UPLOAD_PRESET = ""
+
     // Webpay puede tardar en crear la transacción; los timeouts por defecto
     // de OkHttp (10 s) son demasiado cortos para la primera llamada.
     private val httpClient = OkHttpClient.Builder()
@@ -55,4 +73,60 @@ object RetrofitClient {
             .build()
             .create(ProductApi::class.java)
     }
+
+    // APIs externas (sin backend propio)
+    val exchangeRateService: ExchangeRateApi by lazy {
+        Retrofit.Builder()
+            .baseUrl(FRANKFURTER_BASE_URL)
+            .client(httpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(ExchangeRateApi::class.java)
+    }
+
+    val abstractEmailService: AbstractEmailApi by lazy {
+        Retrofit.Builder()
+            .baseUrl(ABSTRACT_EMAIL_BASE_URL)
+            .client(httpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(AbstractEmailApi::class.java)
+    }
+
+    val numVerifyService: NumVerifyApi by lazy {
+        Retrofit.Builder()
+            .baseUrl(NUMVERIFY_BASE_URL)
+            .client(httpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(NumVerifyApi::class.java)
+    }
+
+    val cloudinaryService: CloudinaryApi by lazy {
+        Retrofit.Builder()
+            .baseUrl(CLOUDINARY_UPLOAD_URL)
+            .client(httpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(CloudinaryApi::class.java)
+    }
+
+    val uguuService: UguuApi by lazy {
+        Retrofit.Builder()
+            .baseUrl(UGUU_BASE_URL)
+            .client(httpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(UguuApi::class.java)
+    }
+
+    val googleDnsService: GoogleDnsApi by lazy {
+        Retrofit.Builder()
+            .baseUrl(GOOGLE_DNS_BASE_URL)
+            .client(httpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(GoogleDnsApi::class.java)
+    }
 }
+

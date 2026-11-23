@@ -15,6 +15,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
+import com.example.albalab.model.EmailNotificacionRequest
+import com.example.albalab.network.RetrofitClient
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.albalab.components.AppDrawer
@@ -40,6 +44,7 @@ import com.example.albalab.ui.theme.screens.ProductosScreen
 import com.example.albalab.viewmodel.AdminProductoViewModel
 import com.example.albalab.viewmodel.AdminViewModel
 import com.example.albalab.viewmodel.AppViewModel
+import com.example.albalab.viewmodel.CompraViewModel
 import com.example.albalab.viewmodel.ContenidoViewModel
 import com.example.albalab.viewmodel.FormularioViewModel2
 import com.example.albalab.viewmodel.ProductoViewModel
@@ -53,7 +58,10 @@ fun App(
 ) {
 
     val appViewModel: AppViewModel = viewModel()
+    val compraViewModel: CompraViewModel = viewModel()
     val webpayViewModel: WebpayViewModel = viewModel()
+
+    val scope = rememberCoroutineScope()
 
     val adminViewModel: AdminViewModel = viewModel()
     val adminProductoViewModel: AdminProductoViewModel = viewModel()
@@ -78,6 +86,7 @@ fun App(
 
     val pantallaActual = appViewModel.pantallaActual
     val carrito = appViewModel.carrito
+    val compras by compraViewModel.compras.collectAsState()
     val webpayOrigen = appViewModel.webpayOrigen
     val montoDonacionPendiente = appViewModel.montoDonacionPendiente
     val ultimaDonacionMonto = appViewModel.ultimaDonacionMonto
@@ -97,6 +106,14 @@ fun App(
             formularioViewModel.limpiarSesion()
         } else {
             formularioViewModel.cargarMisColaboraciones(tokenLogueado)
+        }
+    }
+
+    LaunchedEffect(emailLogueado) {
+        if (emailLogueado.isBlank()) {
+            compraViewModel.cargarCompras("")
+        } else {
+            compraViewModel.cargarCompras(emailLogueado, tokenLogueado)
         }
     }
 
@@ -264,6 +281,26 @@ fun App(
                                             pendiente?.monto
                                                 ?: appViewModel.montoDonacionPendiente
 
+                                        // Enviar correo de confirmación de donación
+                                        val montoDonacion =
+                                            pendiente?.monto
+                                                ?: appViewModel.montoDonacionPendiente
+                                        if (emailLogueado.isNotBlank()) {
+                                            scope.launch {
+                                                try {
+                                                    RetrofitClient.apiService.enviarEmailNotificacion(
+                                                        "Bearer $tokenLogueado",
+                                                        EmailNotificacionRequest(
+                                                            to = emailLogueado,
+                                                            subject = "Donación recibida - AlbaLab",
+                                                            body = "Hola,\n\nTu donación por $$montoDonacion fue procesada exitosamente.\n\nGracias por colaborar con AlbaLab."
+                                                        )
+                                                    )
+                                                } catch (_: Exception) {
+                                                }
+                                            }
+                                        }
+
                                         // Navegar primero evita que una
                                         // recomposición vuelva a entrar a Webpay.
                                         appViewModel.pantallaActual = "DonacionConfirmada"
@@ -276,6 +313,27 @@ fun App(
                                         )
                                     } else {
                                         // El carrito se conserva hasta mostrar la confirmación.
+                                        val totalCompra = carrito.sumOf { it.precio }
+                                        compraViewModel.guardarCompra(
+                                            emailLogueado,
+                                            tokenLogueado,
+                                            carrito.toList()
+                                        )
+                                        if (emailLogueado.isNotBlank()) {
+                                            scope.launch {
+                                                try {
+                                                    RetrofitClient.apiService.enviarEmailNotificacion(
+                                                        "Bearer $tokenLogueado",
+                                                        EmailNotificacionRequest(
+                                                            to = emailLogueado,
+                                                            subject = "Compra confirmada - AlbaLab",
+                                                            body = "Hola,\n\nTu compra por un total de $$totalCompra fue procesada exitosamente.\n\nGracias por tu compra."
+                                                        )
+                                                    )
+                                                } catch (_: Exception) {
+                                                }
+                                            }
+                                        }
                                         appViewModel.pantallaActual = "ConfirmacionCompra"
                                     }
                                 }
@@ -444,6 +502,7 @@ fun App(
                             cantidadColaboraciones = resumenDonaciones.cantidad,
                             cargandoColaboraciones = cargandoMisColaboraciones,
                             errorColaboraciones = errorMisColaboraciones,
+                            compras = compras,
                             onReintentarColaboraciones = {
                                 if (tokenLogueado.isNotBlank()) {
                                     formularioViewModel.cargarMisColaboraciones(

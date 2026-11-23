@@ -4,6 +4,9 @@ import com.example.albalab.model.ColaboradorPublico
 import com.example.albalab.model.ColaboradorRequest
 import com.example.albalab.model.ColaboradorResponse
 import com.example.albalab.model.ConfirmarPagoRequest
+import com.example.albalab.model.EmailNotificacionRequest
+import com.example.albalab.model.HistorialCompraRequest
+import com.example.albalab.model.HistorialCompraResponse
 import com.example.albalab.model.LoginResponse
 import com.example.albalab.model.PagoWebpayResponse
 import com.example.albalab.model.Usuario
@@ -49,4 +52,21 @@ interface AlbalabApi {
         @Header("Authorization") authorization: String,
         @Body request: ConfirmarPagoRequest
     ): Response<PagoWebpayResponse>
+
+    @POST("api/usuarios/notificaciones/email")
+    suspend fun enviarEmailNotificacion(
+        @Header("Authorization") authorization: String,
+        @Body request: EmailNotificacionRequest
+    ): Response<ResponseBody>
+
+    @POST("api/historial/compras")
+    suspend fun guardarCompraHistorial(
+        @Header("Authorization") authorization: String,
+        @Body request: HistorialCompraRequest
+    ): Response<HistorialCompraResponse>
+
+    @GET("api/historial/compras")
+    suspend fun obtenerComprasHistorial(
+        @Header("Authorization") authorization: String
+    ): Response<List<HistorialCompraResponse>>
 }

@@ -1,9 +1,12 @@
 package com.example.albalab.viewmodel
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.albalab.data.repository.MonedaRepository
 import com.example.albalab.model.ResumenCompraModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 class ResumenCompraViewModel : ViewModel() {
 
@@ -18,6 +21,15 @@ class ResumenCompraViewModel : ViewModel() {
 
     private val _direccionError = MutableStateFlow<String?>(null)
     val direccionError = _direccionError.asStateFlow()
+
+    // Conversión de moneda (API externa Frankfurter)
+    private val _tasas = MutableStateFlow<Map<String, Double>?>(null)
+    val tasas = _tasas.asStateFlow()
+
+    private val _cargandoTasas = MutableStateFlow(false)
+    val cargandoTasas = _cargandoTasas.asStateFlow()
+
+    private val monedaRepository = MonedaRepository()
 
     fun actualizarNombre(valor: String) {
         _formulario.value = _formulario.value.copy(
@@ -64,5 +76,17 @@ class ResumenCompraViewModel : ViewModel() {
         return _nombreError.value == null &&
                 _correoError.value == null &&
                 _direccionError.value == null
+    }
+
+    // ------------------------------------------------
+    // TASAS DE CAMBIO (API externa)
+    // ------------------------------------------------
+    fun cargarTasas(base: String = "CLP") {
+        viewModelScope.launch {
+            _cargandoTasas.value = true
+            monedaRepository.obtenerTasas(base)
+                .onSuccess { _tasas.value = it }
+            _cargandoTasas.value = false
+        }
     }
 }

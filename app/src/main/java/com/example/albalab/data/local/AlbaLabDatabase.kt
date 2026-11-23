@@ -11,9 +11,10 @@ import androidx.sqlite.db.SupportSQLiteDatabase
     entities = [
         ColaboradorEntity::class,
         DonacionEntity::class,
-        ContactoEntity::class
+        ContactoEntity::class,
+        CompraEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class AlbaLabDatabase :
@@ -119,6 +120,28 @@ abstract class AlbaLabDatabase :
                 }
             }
 
+        // De versión 3 a versión 4:
+        // crea la tabla compras para el historial de compras del usuario.
+
+        private val MIGRATION_3_4 =
+            object : Migration(3, 4) {
+                override fun migrate(
+                    db: SupportSQLiteDatabase
+                ) {
+                    db.execSQL(
+                        """
+                        CREATE TABLE IF NOT EXISTS compras (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                            usuarioEmail TEXT NOT NULL,
+                            fecha INTEGER NOT NULL,
+                            total INTEGER NOT NULL,
+                            productos TEXT NOT NULL
+                        )
+                        """.trimIndent()
+                    )
+                }
+            }
+
         fun obtenerDatabase(
             context: Context
         ): AlbaLabDatabase {
@@ -134,7 +157,8 @@ abstract class AlbaLabDatabase :
                         )
                             .addMigrations(
                                 MIGRATION_1_2,
-                                MIGRATION_2_3
+                                MIGRATION_2_3,
+                                MIGRATION_3_4
                             )
                             .build()
 

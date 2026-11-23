@@ -7,10 +7,13 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.albalab.model.Usuario
+import com.example.albalab.data.repository.ValidacionRepository
 import com.example.albalab.network.RetrofitClient
 import kotlinx.coroutines.launch
 
 class AuthViewModel : ViewModel() {
+
+    private val validacionRepository = ValidacionRepository()
 
     // Error general del backend
     var mensajeError by mutableStateOf("")
@@ -293,10 +296,24 @@ class AuthViewModel : ViewModel() {
 
                 mensajeError = ""
 
+                val correoLimpio = email.trim()
+
+                // Validación remota de email (API externa): Abstract si hay key,
+                // o DNS-over-HTTPS (Google) como fallback sin key.
+                val resultadoValidacion =
+                    validacionRepository.validarEmail(correoLimpio)
+
+                if (resultadoValidacion.getOrNull() == false) {
+                    errorEmail =
+                        "El dominio del correo no es válido"
+                    cargando = false
+                    return@launch
+                }
+
                 val usuario =
                     Usuario(
                         email =
-                            email.trim(),
+                            correoLimpio,
 
                         password =
                             password

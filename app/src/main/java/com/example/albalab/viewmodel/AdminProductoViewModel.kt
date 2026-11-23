@@ -5,13 +5,17 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.albalab.data.repository.ImagenRepository
 import com.example.albalab.model.ProductoModel
 import com.example.albalab.model.ProductoRequest
 import com.example.albalab.network.RetrofitClient
+import java.io.File
 import kotlinx.coroutines.launch
 import retrofit2.Response
 
 class AdminProductoViewModel : ViewModel() {
+
+    private val imagenRepository = ImagenRepository()
 
     var productos by mutableStateOf<List<ProductoModel>>(emptyList())
         private set
@@ -166,6 +170,36 @@ class AdminProductoViewModel : ViewModel() {
                 }
             } catch (e: Exception) {
                 mensajeError = "Error de conexión al eliminar el producto"
+            } finally {
+                guardando = false
+            }
+        }
+    }
+
+    fun subirImagenProducto(
+        archivo: File,
+        onSuccess: (String) -> Unit
+    ) {
+        if (guardando) return
+
+        viewModelScope.launch {
+            try {
+                guardando = true
+                mensajeError = ""
+                mensajeExito = ""
+
+                val resultado = imagenRepository.subirImagen(archivo)
+                val url = resultado.getOrNull()
+
+                if (url != null) {
+                    mensajeExito = "Imagen subida correctamente"
+                    onSuccess(url)
+                } else {
+                    mensajeError = resultado.exceptionOrNull()?.message
+                        ?: "No se pudo subir la imagen"
+                }
+            } catch (e: Exception) {
+                mensajeError = "Error de conexión al subir la imagen"
             } finally {
                 guardando = false
             }
