@@ -1,409 +1,311 @@
 # AlbaLab Mobile
 
-Aplicación móvil desarrollada en **Android Studio** utilizando **Kotlin** y **Jetpack Compose**.
+Aplicación Android desarrollada en **Kotlin y Jetpack Compose** como propuesta digital para **AlbaLab**, en el contexto de la asignatura **Desarrollo de Aplicaciones Móviles (DSY1105)**.
 
-El proyecto busca representar una solución móvil para **Alba Lab**, permitiendo gestionar productos, donaciones, colaboradores, solicitudes de contacto, autenticación de usuarios y un flujo de compra con integración a Webpay.
+El proyecto integra catálogo de productos, carrito de compras, autenticación, administración, donaciones, colaboradores, solicitudes de contacto y pagos mediante **Webpay Plus**, utilizando una arquitectura **MVVM**, persistencia local **Room**, consumo de APIs externas mediante **Retrofit** y un backend propio de **microservicios Spring Boot**.
 
----
+> **Alcance:** proyecto académico. Los pagos y servicios remotos requieren un backend disponible y configurado; la integración de Webpay debe utilizarse con el entorno autorizado de pruebas.
 
 ## Integrantes
 
 - **Matias Acevedo**
 - **Felipe Marchant**
 
----
+## Repositorio
 
-## Tecnologías utilizadas
+- **Aplicación Android:** <https://github.com/Matiiki/AlbaLab-Mobile>
+- **Backend:** proyecto separado `albalab-backend` (agregar aquí el enlace público definitivo del repositorio).
 
-- Kotlin
-- Android Studio
-- Jetpack Compose
-- Material 3
-- MVVM
-- Room
-- Retrofit
-- Coroutines
-- StateFlow
-- BiometricPrompt
-- Cámara del dispositivo
-- Webpay mediante backend
-- Git y GitHub
+## Tecnologías
 
----
+| Componente | Tecnologías |
+| --- | --- |
+| Aplicación móvil | Kotlin, Android Studio, Jetpack Compose, Material 3 |
+| Arquitectura | MVVM, ViewModel, Repository, StateFlow, corrutinas |
+| Red | Retrofit, OkHttp, Gson, HTTP/REST, JSON |
+| Datos locales | Room (SQLite) |
+| Backend | Java, Spring Boot, Spring Cloud Gateway, Spring Data JPA, MySQL |
+| Seguridad y recursos nativos | Autenticación con token JWT, BiometricPrompt, cámara y FileProvider |
+| Pagos | Webpay Plus mediante `webpay-service` |
+| Pruebas | JUnit y pruebas de ViewModel en Android; JUnit/Mockito y pruebas de controladores y servicios en backend |
+| Colaboración | Git, GitHub y Trello |
 
-## Funcionalidades principales
+## Funcionalidades de la aplicación
 
-### Inicio
+### Catálogo, carrito y compras
 
-Pantalla principal de la aplicación desde donde el usuario puede acceder a las distintas secciones de AlbaLab.
+- Consulta y visualización de productos provenientes del backend.
+- Carrito con incremento y disminución de cantidades, eliminación de productos y cálculo de subtotales y total.
+- Resumen de compra con datos del comprador y consulta de cotización aproximada en USD mediante una API externa.
+- Inicio del pago mediante Webpay, confirmación del resultado desde el backend y pantalla de confirmación cuando corresponde.
+- Historial de compras asociado al usuario mediante `historial-service`, con apoyo de persistencia local Room.
+- Estados de carga, mensajes de error y animaciones de interfaz.
 
-### Productos
+**Flujo de compra:** `Productos → Carrito → Resumen de compra → Webpay → Confirmación`.
 
-Permite visualizar los productos disponibles y agregarlos al carrito de compras.
+> La aplicación **no considera aprobado un pago solo por el retorno del navegador**: `WebpayViewModel` solicita la confirmación al backend y evalúa el estado del pago.
 
-### Carrito
+### Donaciones y colaboradores
 
-Permite:
-
-- Visualizar productos agregados.
-- Aumentar o disminuir cantidades.
-- Eliminar productos.
-- Calcular automáticamente subtotales y total.
-- Mostrar animaciones al modificar las cantidades.
-- Confirmar la identidad mediante biometría cuando está disponible.
-- Continuar al proceso de pago.
-
-### Webpay
-
-La aplicación utiliza Retrofit para comunicarse con un backend encargado de crear la transacción de pago.
-
-Flujo esperado:
-
-`Productos → Carrito → Webpay → Confirmación → Inicio`
-
-> Para utilizar Webpay, el backend debe estar ejecutándose y la URL configurada en `RetrofitClient.kt` debe apuntar correctamente al servidor.
-
-### Confirmación de compra
-
-Después de completar el proceso de pago se muestra una pantalla de confirmación con:
-
-- Total de la compra.
-- Mensaje de operación exitosa.
-- Animación de entrada.
-- Botón para volver al inicio.
-
-### Donaciones
-
-Formulario para registrar una donación.
-
-Incluye:
-
-- Monto.
-- Nombre del colaborador.
-- Fecha.
-- Donación anónima.
-- Uso opcional de cámara.
-- Confirmación biométrica cuando está disponible.
-- Validaciones básicas.
-- Persistencia local mediante Room.
-
-### Colaboradores
-
-Muestra los colaboradores registrados a partir de las donaciones almacenadas localmente.
-
-Los datos permanecen guardados aunque la aplicación sea cerrada.
+- Formulario de donación con validaciones, monto, nombre, fecha y opción de anonimato.
+- Captura opcional de fotografía y confirmación biométrica cuando corresponde.
+- Flujo de pago de donaciones por Webpay; el registro remoto de la colaboración se coordina tras una confirmación de pago aprobada.
+- Consulta de colaboraciones del usuario autenticado y listado público de colaboradores desde el backend.
+- Persistencia local Room para los registros definidos en el proyecto.
 
 ### Contacto
 
-Formulario destinado a personas, empresas u organizaciones que quieran comunicarse con AlbaLab o coordinar una actividad.
+- Formulario con nombre, motivo, cantidad de participantes, fecha, lugar, aceptación de términos y opción de seguimiento.
+- Validaciones en ViewModel.
+- Almacenamiento local mediante Room.
 
-Incluye:
+### Autenticación y perfil
 
-- Nombre de contacto.
-- Motivo de contacto.
-- Cantidad de participantes.
-- Fecha de actividad.
-- Comuna o lugar.
-- Aceptación de términos.
-- Solicitud de seguimiento por parte de AlbaLab.
-- Validaciones básicas.
-- Persistencia local con Room.
+- Registro e inicio de sesión de usuarios mediante el backend.
+- Perfil y cierre de sesión.
+- Gestión de estados de sesión y respuesta ante errores de autenticación.
 
-Este formulario incorpora diferentes tipos de datos y componentes:
+### Administración
 
-- `String`
-- `Int`
-- Fecha
-- `Checkbox`
-- `Switch`
-- `Button`
+- Acceso de administración mediante autenticación específica.
+- Panel administrativo con **CRUD de productos**: crear, consultar, actualizar y eliminar.
+- Gestión de administradores mediante endpoints del servicio de administración.
+- Secciones para administrar contenido de la aplicación.
 
-### Nosotros
+### Recursos visuales y nativos
 
-Sección informativa relacionada con AlbaLab.
+- Navegación entre pantallas con animaciones Compose.
+- Cámara del dispositivo, permisos en tiempo de ejecución y `FileProvider`.
+- Biometría mediante `BiometricPrompt`, cuando el dispositivo y el flujo lo permiten.
 
-### Registro e inicio de sesión
+## Arquitectura
 
-La aplicación cuenta con pantallas de:
-
-- Registro.
-- Inicio de sesión.
-- Perfil.
-- Cierre de sesión.
-
----
-
-## Persistencia local con Room
-
-La aplicación utiliza una base de datos local llamada:
+La aplicación utiliza la separación de responsabilidades **MVVM**.
 
 ```text
-albalab_database
-```
-
-Entre las tablas implementadas se encuentran:
-
-```text
-colaboradores
-donaciones
-contactos
-```
-
-La arquitectura utilizada sigue la separación:
-
-```text
-Screen
-   ↓
+UI / Jetpack Compose (Screen)
+          ↓ eventos y estado
 ViewModel
-   ↓
-Repository
-   ↓
-DAO
-   ↓
-Room
+          ↓ operaciones
+Repository / cliente Retrofit / DAO
+          ├── API externa (Retrofit)
+          ├── API Gateway → microservicios Spring Boot → MySQL
+          └── Room (SQLite local)
 ```
 
-Esto permite separar la interfaz de usuario de la lógica y del acceso a datos.
-
----
-
-## Recursos nativos utilizados
-
-### Cámara
-
-La aplicación puede solicitar permiso para utilizar la cámara y asociar una fotografía a determinados registros.
-
-### Biometría
-
-Se utiliza `BiometricPrompt` para confirmar la identidad del usuario en operaciones como compras o donaciones.
-
-Si el dispositivo no tiene biometría configurada, la aplicación informa al usuario y permite continuar según el flujo definido.
-
----
-
-## Animaciones
-
-La aplicación incorpora animaciones con Jetpack Compose para mejorar la experiencia del usuario.
-
-Entre ellas:
-
-- Transiciones entre pantallas.
-- `fadeIn` y `fadeOut`.
-- Deslizamiento horizontal entre vistas.
-- Animación al modificar cantidades del carrito.
-- Animación de subtotales y total.
-- Animación de confirmación de compra.
-- `AnimatedContent`.
-- `AnimatedVisibility`.
-- `animateContentSize`.
-- `scaleIn`.
-
----
-
-## Arquitectura del proyecto
-
-Estructura general:
+**Paquetes principales** bajo `app/src/main/java/com/example/albalab/`:
 
 ```text
-com.example.albalab
-│
-├── components
-│   ├── AppDrawer.kt
-│   └── AppTopBar.kt
-│
-├── data
-│   ├── local
-│   │   ├── AlbaLabDao.kt
-│   │   ├── AlbaLabDatabase.kt
-│   │   ├── ColaboradorEntity.kt
-│   │   ├── DonacionEntity.kt
-│   │   ├── ContactoEntity.kt
-│   │   └── ColaboradorConDonacion.kt
-│   │
-│   └── repository
-│       ├── DonacionRepository.kt
-│       └── ContactoRepository.kt
-│
-├── model
-│   ├── Colaborador.kt
-│   ├── FormularioModel.kt
-│   ├── FormularioModelDonaciones.kt
-│   ├── ProductoModel.kt
-│   ├── ResumenCompraModel.kt
-│   ├── Usuario.kt
-│   └── WebpayModels.kt
-│
-├── network
-│   ├── AlbalabApi.kt
-│   └── RetrofitClient.kt
-│
-├── ui
-│   └── screens
-│       ├── CarritoScreen.kt
-│       ├── ColaboradoresScreen.kt
-│       ├── ConfirmacionCompraScreen.kt
-│       ├── ContactoScreen.kt
-│       ├── DonacionesScreen.kt
-│       ├── LoginScreen.kt
-│       ├── PerfilScreen.kt
-│       ├── RegistroScreen.kt
-│       ├── ResumenCompraScreen.kt
-│       └── WebpayScreen.kt
-│
-├── viewmodel
-│   ├── AuthViewModel.kt
-│   ├── FormularioViewModel.kt
-│   ├── FormularioViewModel2.kt
-│   └── ResumenCompraViewModel.kt
-│
-├── App.kt
-└── MainActivity.kt
+com.example.albalab/
+├── MainActivity.kt
+├── ui/
+│   ├── App.kt
+│   ├── components/           # Barra superior, drawer y componentes reutilizables
+│   ├── screens/              # Inicio, productos, carrito, Webpay, donaciones, etc.
+│   └── theme/
+├── viewmodel/                # Estados de aplicación, compras, usuarios y administración
+├── data/
+│   ├── local/                # Room: entidades, DAO y base de datos
+│   └── repository/           # Repositorios locales y remotos
+├── model/                    # Modelos y DTO
+└── network/                  # Interfaces Retrofit y configuración de clientes
 ```
 
----
+## Persistencia local y remota
+
+La base de datos local Room se denomina `albalab_database` y contiene entidades relacionadas con **colaboradores, donaciones, contactos y compras**. El proyecto incluye migraciones de esquema.
+
+Los datos remotos de **usuarios, productos, administradores, colaboradores, transacciones e historial** se gestionan en el backend mediante Spring Data JPA y MySQL. No deben confundirse los datos locales de Room con las operaciones CRUD remotas.
+
+## Backend de microservicios
+
+El backend se distribuye en proyectos Spring Boot independientes:
+
+| Servicio | Puerto predeterminado | Responsabilidad |
+| --- | ---: | --- |
+| `api-gateway` | `9090` | Entrada principal y enrutamiento de solicitudes |
+| `usuario-service` | `9091` | Registro, login, usuarios y notificaciones |
+| `admin-service` | `9092` | Autenticación y administración |
+| `colaborador-service` | `9093` | Colaboraciones y listados públicos/privados |
+| `webpay-service` | `9094` | Creación, confirmación, consulta y reembolso de pagos |
+| `product-service` | `9095` | CRUD de productos |
+| `historial-service` | `9096` | Registro y consulta del historial de compras |
+
+Los servicios requieren su configuración correspondiente y, cuando aplica, bases de datos MySQL activas. Los puertos pueden cambiarse mediante variables de entorno.
+
+### Endpoints principales
+
+| Método | Ruta | Función |
+| --- | --- | --- |
+| `POST` | `/api/auth/registro` | Registrar usuario |
+| `POST` | `/api/auth/login` | Autenticar usuario |
+| `GET` | `/api/productos` | Consultar productos |
+| `POST` | `/api/productos` | Crear producto (administración) |
+| `PUT` | `/api/productos/{id}` | Modificar producto (administración) |
+| `DELETE` | `/api/productos/{id}` | Eliminar producto (administración) |
+| `POST` | `/api/admin/auth/login` | Inicio de sesión de administrador |
+| `GET / POST / PUT / DELETE` | `/api/admin` y `/api/admin/{id}` | Gestión de administradores |
+| `GET` | `/api/colaboradores/publicos` | Consultar colaboradores públicos |
+| `GET` | `/api/colaboradores/mios` | Consultar colaboraciones propias |
+| `POST` | `/api/colaboradores` | Registrar colaboración |
+| `POST` | `/api/webpay/crear` | Crear transacción |
+| `POST` | `/api/webpay/confirmar` | Confirmar transacción |
+| `GET` | `/api/webpay/estado/{token}` | Consultar estado del pago |
+| `POST` | `/api/webpay/reembolsar` | Solicitar reembolso desde el backend |
+| `POST` | `/api/historial/compras` | Registrar compra |
+| `GET` | `/api/historial/compras` | Consultar historial de compras |
+| `POST` | `/api/usuarios/notificaciones/email` | Solicitar notificación por correo |
+
+Las rutas pasan por el **Gateway `9090`** cuando se utilizan las interfaces estándar de la app. En el código revisado, el cliente de administración también define acceso directo a **`admin-service` en el puerto `9092`**. Algunas rutas requieren autenticación y autorización.
+
+Los contratos completos, DTO y validaciones deben consultarse en las interfaces Retrofit y controladores del backend.
+
+## Consumo de API externa con Retrofit
+
+Además de los microservicios propios, la aplicación consume una API pública de **tipos de cambio**:
+
+- **Proveedor:** ExchangeRate-API, endpoint público `open.er-api.com`.
+- **Solicitud utilizada:** `GET https://open.er-api.com/v6/latest/CLP`.
+- **Archivos:** `network/ExchangeRateApi.kt`, `data/repository/MonedaRepository.kt` y `viewmodel/ResumenCompraViewModel.kt`.
+- **Uso visual:** mostrar una referencia aproximada del total de compra en dólares estadounidenses (USD).
+
+El proyecto también incluye clientes para validación de correo/dominio y carga de imágenes; algunas integraciones son opcionales y requieren credenciales o configuración adicional. No es necesario activarlas para demostrar la API externa de cotización.
 
 ## Requisitos para ejecutar el proyecto
 
-Se recomienda utilizar:
+**Android:**
 
-- Android Studio.
-- SDK de Android configurado.
-- Dispositivo físico Android o emulador.
-- Conexión a Internet para funciones que utilizan el backend.
-- Backend de AlbaLab ejecutándose para probar Webpay.
+- Android Studio y Android SDK instalados.
+- Emulador o teléfono Android (el proyecto define `minSdk = 24`).
+- Conexión a Internet para APIs externas y servicios remotos.
 
----
+**Backend:**
 
-## Ejecución
+- JDK 21 o compatible con los proyectos Spring Boot.
+- MySQL configurado y disponible.
+- Variables de entorno y configuración de cada servicio revisadas.
+- Maven Wrapper incluido en cada microservicio.
 
-1. Clonar el repositorio:
+### 1. Clonar y abrir la aplicación
 
-```bash
+```powershell
 git clone https://github.com/Matiiki/AlbaLab-Mobile.git
 ```
 
-2. Abrir Android Studio.
+Abre la carpeta clonada en Android Studio, espera **Gradle Sync**, selecciona un dispositivo y ejecuta **Run**.
 
-3. Seleccionar:
+### 2. Iniciar el backend
 
-```text
-Open
+Desde el proyecto de backend, asegúrate de iniciar los servicios necesarios: `usuario-service`, `admin-service`, `colaborador-service`, `product-service`, `webpay-service`, `historial-service` y `api-gateway`.
+
+Ejemplo en **una terminal de PowerShell** (repite en terminales separadas para cada servicio):
+
+```powershell
+cd usuario-service
+.\mvnw.cmd spring-boot:run -s ..\configuracion-maven\settings.xml
 ```
 
-4. Abrir la carpeta:
+> **Atención:** en la versión revisada, `start-all.bat` no inicia todos los microservicios. Además, antes de utilizar scripts de inicio o compartir el backend, se deben retirar las credenciales incrustadas y usar variables de entorno.
 
-```text
-AlbaLab-Mobile
-```
+### 3. Configurar la IP del backend en Android
 
-5. Esperar la sincronización de Gradle.
+Archivo: `app/src/main/java/com/example/albalab/network/RetrofitClient.kt`.
 
-6. Seleccionar un emulador o conectar un dispositivo Android.
-
-7. Ejecutar la aplicación con:
-
-```text
-Run ▶
-```
-
----
-
-## Configuración de Webpay
-
-La conexión con el backend se configura en:
-
-```text
-network/RetrofitClient.kt
-```
-
-Si se utiliza un teléfono físico, se debe utilizar la dirección IPv4 del computador donde está ejecutándose el backend.
-
-Ejemplo:
+La versión revisada utiliza una variable `HOST` con una IP local. Ajustarla al entorno:
 
 ```kotlin
-private const val BASE_URL =
-    "http://192.168.1.100:9091/"
+// Ejemplo: emulador Android Studio con backend en el mismo PC
+private const val HOST = "10.0.2.2"
+
+const val BASE_URL = "http://$HOST:9090/"
+const val ADMIN_BASE_URL = "http://$HOST:9092/"
 ```
 
-Si se utiliza el emulador estándar de Android Studio y el backend está ejecutándose en el mismo computador:
+En un **teléfono físico**, utiliza la IPv4 accesible del computador donde corre el backend y verifica que ambos dispositivos estén en la misma red y los puertos no estén bloqueados por el firewall.
 
-```kotlin
-private const val BASE_URL =
-    "http://10.0.2.2:9091/"
+El hostname del emulador `10.0.2.2` **no se utiliza para conectar teléfonos físicos**.
+
+## Pruebas automatizadas
+
+La app incluye pruebas unitarias en `app/src/test/`, entre ellas pruebas para `AppViewModel`, `AuthViewModel`, `ProductoViewModel`, `AdminViewModel`, `AdminProductoViewModel`, `FormularioViewModel2`, `ResumenCompraViewModel`, `WebpayViewModel` y componentes de red.
+
+**Ejecutar las pruebas locales de Android** desde la raíz del repositorio:
+
+```powershell
+.\gradlew.bat testDebugUnitTest
 ```
 
-La IP debe modificarse según el entorno utilizado.
+**Ejecutar pruebas de un servicio backend** desde la raíz del repositorio backend:
 
----
-
-## Permisos
-
-La aplicación puede requerir permisos como:
-
-```xml
-<uses-permission android:name="android.permission.INTERNET" />
-<uses-permission android:name="android.permission.CAMERA" />
+```powershell
+cd usuario-service
+.\mvnw.cmd test -s ..\configuracion-maven\settings.xml
 ```
 
-El permiso de cámara se solicita durante la ejecución cuando corresponde.
+Los demás servicios se prueban de forma análoga. El backend incluye pruebas con JUnit y Mockito, y configuración de cobertura JaCoCo en varios módulos.
 
----
+> **Cobertura:** la pauta de evaluación exige al menos **80% de la lógica**. La existencia de pruebas no acredita ese porcentaje. **Pendiente adjuntar reporte de cobertura y registrar el porcentaje real medido** tras ejecutarlas correctamente.
 
-## Validaciones
+## APK `release` firmado
 
-Los formularios cuentan con validaciones básicas separadas de la interfaz mediante ViewModels.
+La aplicación cuenta con un **APK `release` generado, instalado y probado en emulador**. La firma se creó con una llave de tipo JKS y se verificó con `apksigner`.
 
-Ejemplos:
+- **APK:** [`app/release/app-release.apk`](app/release/app-release.apk)
+- **Application ID:** `com.example.albalab`
+- **Build variant:** `release`
+- **Alias de la llave:** `albalab`
+- **Firma verificada:** `Verifies`
+- **Esquema de firma APK V2:** `true`
+- **Algoritmo de clave:** RSA, 2048 bits
+- **Cantidad de firmantes:** 1
 
-- Campos obligatorios.
-- Cantidades mayores a cero.
-- Monto mínimo de donación.
-- Selección de fecha.
-- Selección de lugar.
-- Aceptación de términos.
+### Procedimiento utilizado
 
-Los errores se muestran directamente junto al campo correspondiente.
+1. Abrir el proyecto en Android Studio.
+2. Seleccionar **Build → Generate Signed App Bundle / APK → APK**.
+3. Crear o seleccionar un almacén de claves JKS y configurar alias y contraseñas.
+4. Seleccionar el tipo de compilación **`release`** y generar el APK.
+5. Instalar el APK generado en un emulador Android y verificar su funcionamiento.
+6. Ejecutar `apksigner verify --verbose --print-certs` sobre el APK y comprobar el resultado `Verifies` y firma V2 válida.
 
----
+Ejemplo de verificación (ajustar ruta de Android SDK según el equipo):
 
-## Control de versiones
-
-El proyecto utiliza Git y GitHub para el control de versiones.
-
-Repositorio:
-
-```text
-https://github.com/Matiiki/AlbaLab-Mobile
+```powershell
+& "G:\Android\Sdk\build-tools\36.0.0\apksigner.bat" verify --verbose --print-certs ".\app\release\app-release.apk"
 ```
 
-Antes de realizar la entrega final se recomienda verificar que:
+### Evidencias
 
-- El proyecto compile correctamente.
-- No existan conflictos pendientes.
-- La rama `main` contenga la versión final.
-- El código de GitHub sea el mismo código entregado en la plataforma de evaluación.
+- **Captura de verificación de firma:** [Ver evidencia](Evidencias/evidencia-firma-apk.png).
+- **APK instalable:** [Descargar desde el repositorio](app/release/app-release.apk).
+- **Captura del APK funcionando en emulador:** pendiente de agregar a `Evidencias/`.
+- **Captura que acredite la existencia del archivo `.jks`:** pendiente de agregar, sin mostrar datos sensibles.
+
+> **Seguridad de la firma:** el archivo `albalab-release.jks` y sus contraseñas se mantienen fuera del repositorio público. El docente debe indicar un canal **privado y autorizado** para la entrega de la llave, solicitada por la rúbrica. No publicar llaves privadas, contraseñas ni tokens en el README o en GitHub.
+
+## Trabajo colaborativo: GitHub y Trello
+
+- **Control de versiones:** historial de commits en [GitHub](https://github.com/Matiiki/AlbaLab-Mobile/commits/main).
+
+## Estado de la entrega (Evaluación Parcial 3)
+
+| Criterio | Evidencia disponible | Verificación pendiente |
+| --- | --- | --- |
+| Pantallas y formularios | Código Compose y ViewModels | Demostración completa sin errores |
+| Microservicios Spring Boot | Código de servicios, controladores y persistencia | Arranque de todos los servicios y conexión MySQL |
+| Integración y CRUD | Interfaces Retrofit y funcionalidades administrativas | Ejecutar flujos completos en vivo |
+| API externa | API de tipos de cambio con Retrofit | Demostrar consulta en pantalla |
+| Pruebas unitarias | Pruebas Android y backend | Ejecución exitosa y cobertura real ≥80% |
+| APK firmado | APK `release`, ejecución en emulador y verificación V2 | Adjuntar capturas complementarias y acordar entrega privada de `.jks` |
+| GitHub y Trello | Repositorio público | Evidencia de commits por integrante y tablero Trello |
+
+## Consideraciones de seguridad y uso
+
+- No publicar contraseñas, claves JKS, JWT secrets, API keys ni tokens de pago.
+- Las IP locales y variables de entorno deben adaptarse al equipo donde se ejecute el proyecto.
+- Las funcionalidades remotas dependen de que los servicios estén disponibles.
+- Este proyecto es una **demostración académica**; no equivale a la publicación comercial de una aplicación de pagos.
 
 ---
 
-## Estado del proyecto
-
-Actualmente se encuentran implementadas las principales funcionalidades solicitadas para la evaluación:
-
-- Navegación entre pantallas.
-- Formularios con validaciones.
-- Arquitectura MVVM.
-- Persistencia local con Room.
-- Recursos nativos.
-- Biometría.
-- Cámara.
-- Carrito de compras.
-- Integración con backend.
-- Webpay.
-- Animaciones funcionales.
-- Uso de Git y GitHub.
-
----
-
-## Proyecto académico
-
-Proyecto desarrollado con fines académicos para la asignatura de desarrollo de aplicaciones móviles.
+**Proyecto académico — Desarrollo de Aplicaciones Móviles (DSY1105).**
